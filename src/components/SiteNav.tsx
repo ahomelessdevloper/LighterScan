@@ -1,4 +1,4 @@
-import { HeartHandshake, LayoutGrid, Scale } from "lucide-react";
+import { Heart, LayoutGrid, Scale } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { BRAND_ASSETS } from "../lib/brandAssets";
@@ -11,14 +11,13 @@ interface SiteNavProps {
   actions?: ReactNode;
 }
 
-const TABS: Array<{
-  id: SiteView;
+const MAIN_TABS: Array<{
+  id: Exclude<SiteView, "support">;
   label: string;
   icon: LucideIcon;
 }> = [
   { id: "dashboard", label: "Stats", icon: LayoutGrid },
   { id: "compare", label: "Compare", icon: Scale },
-  { id: "support", label: "Support", icon: HeartHandshake },
 ];
 
 export function SiteNav({ active, onNavigate, actions }: SiteNavProps) {
@@ -46,7 +45,7 @@ export function SiteNav({ active, onNavigate, actions }: SiteNavProps) {
           <span className="site-nav__rule" aria-hidden="true" />
 
           <nav className="site-nav__dock" aria-label="Main">
-            {TABS.map((tab) => {
+            {MAIN_TABS.map((tab) => {
               const isActive = active === tab.id;
               const Icon = tab.icon;
               return (
@@ -67,7 +66,21 @@ export function SiteNav({ active, onNavigate, actions }: SiteNavProps) {
 
           <div className="site-nav__spacer" aria-hidden="true" />
 
-          {actions && <div className="site-nav__actions">{actions}</div>}
+          <div className="site-nav__actions">
+            <button
+              type="button"
+              aria-current={active === "support" ? "page" : undefined}
+              onClick={() => onNavigate("support")}
+              className={`site-nav__cta site-nav__cta--donate ${
+                active === "support" ? "site-nav__cta--active" : ""
+              }`}
+            >
+              <span className="site-nav__cta-shine" aria-hidden="true" />
+              <Heart className="site-nav__cta-icon" aria-hidden="true" />
+              <span className="site-nav__cta-label">Donate</span>
+            </button>
+            {actions}
+          </div>
         </div>
       </div>
     </header>

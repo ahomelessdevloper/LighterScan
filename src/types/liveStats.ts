@@ -2,7 +2,8 @@ export interface StatValue {
   lighter: number | null;
   hyperliquid: number | null;
   label: string;
-  format: "number" | "currency" | "compact" | "ratio";
+  format: "number" | "currency" | "compact" | "ratio" | "token" | "percent";
+  tokens?: { lighter: string; hyperliquid: string };
 }
 
 export interface ValuationMetrics {

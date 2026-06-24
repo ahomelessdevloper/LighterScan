@@ -1,12 +1,20 @@
 import type { StatValue, ValuationMetrics, ValuationRatioCharts } from "../types/liveStats";
 import { formatNumber, formatUSD } from "./api";
 
+export function formatTokenQuantity(value: number | null, symbol: string): string {
+  if (value == null) return "—";
+  return `${formatNumber(value, true)} ${symbol}`;
+}
+
 export function formatStatValue(
   value: number | null,
-  format: StatValue["format"]
+  format: StatValue["format"],
+  tokenSymbol?: string
 ): string {
   if (value == null) return "—";
+  if (format === "token") return formatTokenQuantity(value, tokenSymbol ?? "");
   if (format === "ratio") return `${value.toFixed(2)}x`;
+  if (format === "percent") return `${value.toFixed(2)}%`;
   if (format === "currency") return formatUSD(value, true);
   if (format === "compact" || format === "number") return formatNumber(value, true);
   return String(value);

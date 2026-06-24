@@ -22,6 +22,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/coingecko-api/, '/api/v3'),
       },
+      '/buyback-api': {
+        target: 'https://lighter-vs-hyperliquid.vercel.app/api',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/buyback-api/, ''),
+      },
     },
   },
   preview: {
@@ -40,6 +45,11 @@ export default defineConfig({
         target: 'https://api.coingecko.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/coingecko-api/, '/api/v3'),
+      },
+      '/buyback-api': {
+        target: 'https://lighter-vs-hyperliquid.vercel.app/api',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/buyback-api/, ''),
       },
     },
   },

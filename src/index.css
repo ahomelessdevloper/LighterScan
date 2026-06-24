@@ -922,6 +922,16 @@ body {
   background: transparent !important;
 }
 
+.compare-chart--line {
+  overflow: hidden;
+  padding: 2px 4px 0;
+}
+
+.compare-chart--line .recharts-cartesian-grid-horizontal line:last-child,
+.compare-chart--line .recharts-cartesian-grid-horizontal line:first-child {
+  opacity: 0.45;
+}
+
 .compare-chart .recharts-tooltip-cursor,
 .compare-chart .recharts-rectangle.recharts-tooltip-cursor {
   fill: rgba(34, 211, 238, 0.05) !important;
@@ -966,9 +976,13 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.compare-chart .recharts-active-dot,
-.compare-chart .recharts-dot {
+.compare-chart:not(.compare-chart--line) .recharts-active-dot,
+.compare-chart:not(.compare-chart--line) .recharts-dot {
   display: none !important;
+}
+
+.compare-chart--line .recharts-line-dots .recharts-dot {
+  pointer-events: none;
 }
 
 .compare-chart .recharts-legend-item-text {
@@ -2404,6 +2418,238 @@ body {
   color: #71717a;
 }
 
+.buyback-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.buyback-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+}
+
+.buyback-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.buyback-controls select {
+  min-width: 6.5rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.45rem;
+  border: 1px solid #2d3148;
+  background: #12131d;
+  color: #e4e4e7;
+  font-size: 0.8rem;
+}
+
+.buyback-valuation-toggle {
+  display: inline-flex;
+  border: 1px solid #2d3148;
+  border-radius: 0.45rem;
+  overflow: hidden;
+}
+
+.buyback-valuation-toggle button {
+  padding: 0.42rem 0.7rem;
+  border: 0;
+  background: #12131d;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.buyback-valuation-toggle button.active {
+  background: #1f2937;
+  color: #f4f4f5;
+}
+
+.buyback-error {
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #7f1d1d;
+  background: #2b0f12;
+  color: #fca5a5;
+  border-radius: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.buyback-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.buyback-summary-card {
+  min-height: 100%;
+}
+
+.buyback-summary-label,
+.buyback-chart-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.buyback-metric-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-top: 0.45rem;
+}
+
+.buyback-metric-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.buyback-venue-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.buyback-venue-dot--lit {
+  background: #22d3ee;
+}
+
+.buyback-venue-dot--hype {
+  background: #4ade80;
+}
+
+.buyback-summary-value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #f8fafc;
+  white-space: nowrap;
+}
+
+.buyback-summary-subtitle {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.buyback-chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.buyback-chart-head__left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.buyback-chart-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.buyback-date-range-label {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.buyback-chart-container {
+  min-height: 300px;
+}
+
+.buyback-empty {
+  margin: 0;
+  padding: 2rem 0;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.buyback-table-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.65rem;
+}
+
+.buyback-table-tabs {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.buyback-table-tabs button {
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.4rem;
+  border: 1px solid #2d3148;
+  background: #12131d;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.buyback-table-tabs button.active {
+  border-color: #3f4b63;
+  color: #f8fafc;
+  background: #1a1d2b;
+}
+
+.buyback-table-wrapper {
+  overflow: auto;
+}
+
+.buyback-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+}
+
+.buyback-table th,
+.buyback-table td {
+  padding: 0.55rem 0.45rem;
+  border-bottom: 1px solid #24263a;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.buyback-table th {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.buyback-table td {
+  color: #e2e8f0;
+}
+
+.buyback-footnote {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+@media (max-width: 1024px) {
+  .buyback-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .compare-soon__title {
   margin: 0 0 0.5rem;
   font-size: 1rem;
@@ -3721,12 +3967,25 @@ body {
 }
 
 /* Donation page */
-.site-nav__link--donate {
-  text-decoration: none;
+.site-nav__cta--donate {
+  border-color: rgba(251, 113, 133, 0.4);
+  background: linear-gradient(135deg, rgba(251, 113, 133, 0.16), rgba(244, 63, 94, 0.1));
+  color: #fecdd3;
 }
 
-.site-nav__link--donate:not(.site-nav__link--active):hover {
-  color: #fda4af;
+.site-nav__cta--donate:hover {
+  border-color: rgba(253, 164, 175, 0.6);
+  box-shadow: 0 8px 22px rgba(244, 63, 94, 0.22);
+  color: #fff;
+}
+
+.site-nav__cta--donate.site-nav__cta--active {
+  border-color: rgba(253, 164, 175, 0.65);
+  background: linear-gradient(135deg, #fda4af 0%, #fb7185 52%, #f43f5e 100%);
+  color: #0a0b0f;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+    0 6px 18px rgba(244, 63, 94, 0.28);
 }
 
 .support-page {

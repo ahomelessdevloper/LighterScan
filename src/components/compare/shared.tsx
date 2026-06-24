@@ -35,11 +35,13 @@ export function CompareTooltip({
   payload,
   label,
   format = "number",
+  tokens,
 }: {
   active?: boolean;
   payload?: Array<{ name?: string; value?: number; color?: string }>;
   label?: string;
   format?: StatValue["format"];
+  tokens?: StatValue["tokens"];
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -49,11 +51,13 @@ export function CompareTooltip({
         const rawName =
           (entry as { payload?: { name?: string } }).payload?.name ?? entry.name;
         const name = venueDisplayName(rawName);
+        const tokenSymbol =
+          rawName === "Lighter" ? tokens?.lighter : tokens?.hyperliquid;
         return (
           <p key={`${rawName}-${i}`} className="compare-tooltip__row" style={{ color: entry.color }}>
             <span>{name}</span>
             <span className="compare-tooltip__value">
-              {formatStatValue(entry.value ?? null, format)}
+              {formatStatValue(entry.value ?? null, format, tokenSymbol)}
             </span>
           </p>
         );
@@ -120,12 +124,16 @@ function MetricValues({ metric }: { metric: StatValue }) {
       <span className="metric-venue-values__side metric-venue-values__side--lighter">
         <VenueLogo venue="lighter" size="xs" />
         <span className="metric-venue-values__name">Lighter</span>
-        <span className="metric-venue-values__val">{formatStatValue(metric.lighter, metric.format)}</span>
+        <span className="metric-venue-values__val">
+          {formatStatValue(metric.lighter, metric.format, metric.tokens?.lighter)}
+        </span>
       </span>
       <span className="metric-venue-values__side metric-venue-values__side--hyperliquid">
         <VenueLogo venue="hyperliquid" size="xs" />
         <span className="metric-venue-values__name">Hyperliquid</span>
-        <span className="metric-venue-values__val">{formatStatValue(metric.hyperliquid, metric.format)}</span>
+        <span className="metric-venue-values__val">
+          {formatStatValue(metric.hyperliquid, metric.format, metric.tokens?.hyperliquid)}
+        </span>
       </span>
     </div>
   );
@@ -172,9 +180,18 @@ export function MetricBarCard({
               tickLine={false}
               axisLine={false}
               width={isMobileTickWidth(tickSize)}
-              tickFormatter={(v) => formatStatValue(Number(v), metric.format)}
+              tickFormatter={(v) =>
+                formatStatValue(
+                  Number(v),
+                  metric.format,
+                  metric.format === "token" ? "" : undefined
+                )
+              }
             />
-            <Tooltip content={<CompareTooltip format={metric.format} />} cursor={BAR_CURSOR} />
+            <Tooltip
+              content={<CompareTooltip format={metric.format} tokens={metric.tokens} />}
+              cursor={BAR_CURSOR}
+            />
             <Bar dataKey="value" radius={[3, 3, 0, 0]} maxBarSize={40} isAnimationActive={false} activeBar={false}>
               {data.map((entry) => (
                 <Cell key={entry.name} fill={entry.fill} />
@@ -187,18 +204,92 @@ export function MetricBarCard({
   );
 }
 
+function lineTickFormatter(value: number, format: StatValue["format"]): string {
+  if (format === "percent") return `${Number(value).toFixed(2)}%`;
+  if (format === "ratio") return `${Number(value).toFixed(1)}x`;
+  return formatStatValue(Number(value), format);
+}
+
+function lineChartValues(series: TimeSeriesPoint[]): number[] {
+  return series
+    .flatMap((point) => [point.lighter, point.hyperliquid])
+    .filter((value): value is number => value != null && Number.isFinite(value));
+}
+
+function lineChartYDomain(
+  series: TimeSeriesPoint[],
+  format: StatValue["format"]
+): [number, number] | undefined {
+  const values = lineChartValues(series);
+  if (!values.length) return undefined;
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = Math.max(max - min, Math.abs(max) * 0.08, format === "percent" ? 0.15 : 0.5);
+  const pad = span * 0.14;
+  const floor = format === "percent" || format === "ratio" ? Math.max(0, min - pad) : min - pad;
+
+  return [floor, max + pad];
+}
+
+const LINE_CHART_MARGIN = { top: 14, right: 18, left: 2, bottom: 10 };
+
+type LineChartRow = {
+  time: string;
+  lighter: number | null;
+  hyperliquid: number | null;
+};
+
+type LineDotProps = {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  value?: number;
+};
+
+function makeChangeDot(
+  color: string,
+  dataKey: "lighter" | "hyperliquid",
+  data: LineChartRow[]
+) {
+  return (props: LineDotProps) => {
+    const { cx, cy, index, value } = props;
+    if (cx == null || cy == null || index == null || value == null || !Number.isFinite(value)) {
+      return null;
+    }
+
+    const prev = index > 0 ? data[index - 1]?.[dataKey] : null;
+    if (prev != null && prev === value) return null;
+
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={2.5}
+        fill={color}
+        stroke="#0a0b12"
+        strokeWidth={1}
+      />
+    );
+  };
+}
+
 export function RatioLineCard({
   label,
   series,
   height,
   tickSize,
   filename,
+  format = "ratio",
+  latest,
 }: {
   label: string;
   series: TimeSeriesPoint[];
   height: number;
   tickSize: number;
   filename?: string;
+  format?: StatValue["format"];
+  latest?: StatValue;
 }) {
   const captureRef = useRef<HTMLElement>(null);
   const chartData = useMemo(
@@ -210,6 +301,12 @@ export function RatioLineCard({
       })),
     [series]
   );
+  const yDomain = useMemo(() => lineChartYDomain(series, format), [series, format]);
+  const lighterDot = useMemo(() => makeChangeDot(LIGHTER_COLOR, "lighter", chartData), [chartData]);
+  const hyperliquidDot = useMemo(
+    () => makeChangeDot(HYPERLIQUID_COLOR, "hyperliquid", chartData),
+    [chartData]
+  );
 
   return (
     <article ref={captureRef} className="card p-2.5 sm:p-3 downloadable-block">
@@ -218,34 +315,39 @@ export function RatioLineCard({
         filename={filename ?? chartDownloadFilename(label)}
         className="downloadable-block__dl"
       />
-      <h4 className="text-xs sm:text-sm font-normal text-white mb-2 pr-8">{label}</h4>
-      <div className="compare-chart" style={{ height }}>
+      <h4 className="text-xs sm:text-sm font-normal text-white mb-1 pr-8">{label}</h4>
+      {latest ? <MetricValues metric={latest} /> : null}
+      <div className="compare-chart compare-chart--line" style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 2, right: 2, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="2 2" stroke="#24263a" />
+          <LineChart data={chartData} margin={LINE_CHART_MARGIN}>
+            <CartesianGrid strokeDasharray="2 2" stroke="#24263a" vertical={false} />
             <XAxis
               dataKey="time"
               tick={{ fill: "#71717a", fontSize: tickSize }}
               tickLine={false}
               axisLine={false}
-              minTickGap={28}
+              minTickGap={32}
+              padding={{ left: 16, right: 16 }}
+              dy={4}
             />
             <YAxis
               tick={{ fill: "#71717a", fontSize: tickSize }}
               tickLine={false}
               axisLine={false}
-              width={isMobileTickWidth(tickSize)}
-              tickFormatter={(v) => `${Number(v).toFixed(1)}x`}
+              width={isMobileTickWidth(tickSize) + 6}
+              domain={yDomain}
+              tickFormatter={(v) => lineTickFormatter(Number(v), format)}
+              tickCount={format === "percent" ? 5 : 6}
             />
-            <Tooltip content={<CompareTooltip format="ratio" />} cursor={CHART_CURSOR} />
+            <Tooltip content={<CompareTooltip format={format} />} cursor={CHART_CURSOR} />
             <Line
               type="monotone"
               dataKey="lighter"
               name="lighter"
               stroke={LIGHTER_COLOR}
-              strokeWidth={1.5}
-              dot={false}
-              activeDot={false}
+              strokeWidth={2}
+              dot={lighterDot}
+              activeDot={{ r: 4, stroke: "#0a0b12", strokeWidth: 1, fill: LIGHTER_COLOR }}
               isAnimationActive={false}
               connectNulls
             />
@@ -254,9 +356,9 @@ export function RatioLineCard({
               dataKey="hyperliquid"
               name="hyperliquid"
               stroke={HYPERLIQUID_COLOR}
-              strokeWidth={1.5}
-              dot={false}
-              activeDot={false}
+              strokeWidth={2}
+              dot={hyperliquidDot}
+              activeDot={{ r: 4, stroke: "#0a0b12", strokeWidth: 1, fill: HYPERLIQUID_COLOR }}
               isAnimationActive={false}
               connectNulls
             />
@@ -367,5 +469,14 @@ export function useCompareCharts(payload: LiveComparisonPayload | null) {
 
   const ratioCharts = useMemo(() => ratioChartDefinitions(payload?.valuation), [payload]);
 
-  return { barHeight, lineHeight, areaHeight, tickSize, headline, valuationBars, ratioCharts };
+  return {
+    isMobile,
+    barHeight,
+    lineHeight,
+    areaHeight,
+    tickSize,
+    headline,
+    valuationBars,
+    ratioCharts,
+  };
 }
