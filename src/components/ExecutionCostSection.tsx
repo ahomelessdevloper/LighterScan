@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoadingState } from "./LoadingState";
 import { ChartDownloadButton } from "./ChartDownloadButton";
+import { TableScrollZone } from "./TableScrollZone";
 import { chartDownloadFilename } from "../lib/chartDownload";
 import {
   Bar,
@@ -53,9 +54,9 @@ function FeeUsdCell({
   isWinner?: boolean;
 }) {
   return (
-    <span className={`exec-cost-fee ${isWinner ? "exec-cost-fee--win" : ""}`}>
-      {formatFeeUsd(value)}
-    </span>
+    <div className={`exec-cost-value ${isWinner ? "exec-cost-value--win" : ""}`}>
+      <span className="exec-cost-value__primary">{formatFeeUsd(value)}</span>
+    </div>
   );
 }
 
@@ -194,84 +195,88 @@ export function ExecutionCostSection() {
 
   return (
     <section className="exec-cost-section">
-      <div className="exec-cost-panel exec-cost-panel--controls">
-        <div className="exec-cost-control">
-          <span className="exec-cost-control__label">Period</span>
-          <div className="exec-cost-pills">
-            {EXECUTE_STATS_PERIODS.map((p) => (
-              <button
-                key={p.value}
-                type="button"
-                className={`exec-cost-pill ${period === p.value ? "exec-cost-pill--active" : ""}`}
-                onClick={() => setPeriod(p.value)}
+      <div className="exec-cost-panel exec-cost-panel--toolbar">
+        <div className="exec-cost-toolbar">
+          <div className="exec-cost-toolbar__filters">
+            <div className="exec-cost-control">
+              <span className="exec-cost-control__label">Period</span>
+              <div className="exec-cost-pills scroll-fade-x">
+                {EXECUTE_STATS_PERIODS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={`exec-cost-pill ${period === p.value ? "exec-cost-pill--active" : ""}`}
+                    onClick={() => setPeriod(p.value)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="exec-cost-control exec-cost-control--market">
+              <label htmlFor="exec-cost-market" className="exec-cost-control__label">
+                Market
+              </label>
+              <select
+                id="exec-cost-market"
+                className="exec-cost-select"
+                value={market}
+                onChange={(e) => setMarket(e.target.value)}
               >
-                {p.label}
-              </button>
-            ))}
+                {(["crypto", "rwa"] as const).map((cat) => {
+                  const list = marketsByCategory[cat];
+                  if (!list.length) return null;
+                  return (
+                    <optgroup key={cat} label={cat.toUpperCase()}>
+                      {list.map((sym) => (
+                        <option key={sym} value={sym}>
+                          {sym}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="exec-cost-control">
+              <span className="exec-cost-control__label">History size</span>
+              <div className="exec-cost-pills scroll-fade-x">
+                {EXECUTE_TRADE_SIZES.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    className={`exec-cost-pill ${chartSize === size ? "exec-cost-pill--active" : ""}`}
+                    onClick={() => setChartSize(size)}
+                  >
+                    {formatTradeSize(size)}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="exec-cost-control">
-          <label htmlFor="exec-cost-market" className="exec-cost-control__label">
-            Market
-          </label>
-          <select
-            id="exec-cost-market"
-            className="exec-cost-select"
-            value={market}
-            onChange={(e) => setMarket(e.target.value)}
-          >
-            {(["crypto", "rwa"] as const).map((cat) => {
-              const list = marketsByCategory[cat];
-              if (!list.length) return null;
-              return (
-                <optgroup key={cat} label={cat.toUpperCase()}>
-                  {list.map((sym) => (
-                    <option key={sym} value={sym}>
-                      {sym}
-                    </option>
-                  ))}
-                </optgroup>
-              );
-            })}
-          </select>
-        </div>
-
-        <div className="exec-cost-control">
-          <span className="exec-cost-control__label">Chart size</span>
-          <div className="exec-cost-pills">
-            {EXECUTE_TRADE_SIZES.map((size) => (
-              <button
-                key={size}
-                type="button"
-                className={`exec-cost-pill ${chartSize === size ? "exec-cost-pill--active" : ""}`}
-                onClick={() => setChartSize(size)}
-              >
-                {formatTradeSize(size)}
-              </button>
-            ))}
+          <div className="exec-cost-toolbar__fees">
+            <span className="exec-cost-control__label">Taker fees (bps)</span>
+            <div className="exec-cost-fee-inputs scroll-fade-x">
+              {EXECUTE_VENUES.map((venue) => (
+                <label
+                  key={venue.id}
+                  className={`exec-cost-fee-input exec-cost-fee-input--${venue.id}`}
+                >
+                  <span>{venue.label}</span>
+                  <input
+                    value={feeInputs[venue.id]}
+                    onChange={(e) =>
+                      setFeeInputs((prev) => ({ ...prev, [venue.id]: e.target.value }))
+                    }
+                  />
+                  <em>bps</em>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div className="exec-cost-panel exec-cost-panel--fees">
-        <h3 className="exec-cost-panel__title">Taker fees (bps)</h3>
-        <div className="exec-cost-fee-inputs">
-          {EXECUTE_VENUES.map((venue) => (
-            <label
-              key={venue.id}
-              className={`exec-cost-fee-input exec-cost-fee-input--${venue.id}`}
-            >
-              <span>{venue.label}</span>
-              <input
-                value={feeInputs[venue.id]}
-                onChange={(e) =>
-                  setFeeInputs((prev) => ({ ...prev, [venue.id]: e.target.value }))
-                }
-              />
-              <em>bps</em>
-            </label>
-          ))}
         </div>
       </div>
 
@@ -281,14 +286,21 @@ export function ExecutionCostSection() {
         </div>
       ) : (
         <>
-          <div ref={feesTableRef} className="exec-cost-panel downloadable-block">
-            <div className="card-head-dl">
-              <h3 className="exec-cost-panel__title card-head-dl__title">{market} · fees</h3>
+          <VenueLegend />
+
+          <div className="exec-cost-tables">
+          <div ref={feesTableRef} className="exec-cost-panel exec-cost-panel--table downloadable-block">
+            <div className="exec-cost-panel__head card-head-dl">
+              <div>
+                <h3 className="exec-cost-panel__title card-head-dl__title">{market} · fees</h3>
+                <p className="exec-cost-panel__sub">Taker fee cost by trade size</p>
+              </div>
               <ChartDownloadButton
                 targetRef={feesTableRef}
                 filename={chartDownloadFilename(`exec-fees-${market}-${period}`)}
               />
             </div>
+            <TableScrollZone className="exec-cost-table-zone">
             <div className="table-scroll">
               <table className="w-full text-sm market-table exec-cost-table exec-cost-table--venues">
                 <thead>
@@ -331,16 +343,21 @@ export function ExecutionCostSection() {
                 </tbody>
               </table>
             </div>
+            </TableScrollZone>
           </div>
 
-          <div ref={allInTableRef} className="exec-cost-panel downloadable-block">
-            <div className="card-head-dl">
-              <h3 className="exec-cost-panel__title card-head-dl__title">{market} · all-in</h3>
+          <div ref={allInTableRef} className="exec-cost-panel exec-cost-panel--table downloadable-block">
+            <div className="exec-cost-panel__head card-head-dl">
+              <div>
+                <h3 className="exec-cost-panel__title card-head-dl__title">{market} · all-in</h3>
+                <p className="exec-cost-panel__sub">Fee + slippage · USD and bps</p>
+              </div>
               <ChartDownloadButton
                 targetRef={allInTableRef}
                 filename={chartDownloadFilename(`exec-allin-${market}-${period}`)}
               />
             </div>
+            <TableScrollZone className="exec-cost-table-zone">
             <div className="table-scroll">
               <table className="w-full text-sm market-table exec-cost-table exec-cost-table--venues">
                 <thead>
@@ -376,6 +393,8 @@ export function ExecutionCostSection() {
                 </tbody>
               </table>
             </div>
+            </TableScrollZone>
+          </div>
           </div>
 
           <div className="exec-cost-charts">
@@ -387,8 +406,7 @@ export function ExecutionCostSection() {
                   filename={chartDownloadFilename(`exec-fees-chart-${market}`)}
                 />
               </div>
-              <VenueLegend />
-              <div className="exec-cost-chart compare-chart">
+              <div className="exec-cost-chart compare-chart chart-surface">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={feeBarRows} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 8" stroke="rgba(51, 65, 85, 0.45)" vertical={false} />
@@ -429,8 +447,7 @@ export function ExecutionCostSection() {
                   filename={chartDownloadFilename(`exec-allin-chart-${market}`)}
                 />
               </div>
-              <VenueLegend />
-              <div className="exec-cost-chart compare-chart">
+              <div className="exec-cost-chart compare-chart chart-surface">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={allInBarRows} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 8" stroke="rgba(51, 65, 85, 0.45)" vertical={false} />
@@ -473,8 +490,7 @@ export function ExecutionCostSection() {
                   filename={chartDownloadFilename(`exec-history-${market}-${chartSize}`)}
                 />
               </div>
-              <VenueLegend />
-              <div className="exec-cost-chart compare-chart">
+              <div className="exec-cost-chart compare-chart chart-surface">
                 {history.length > 1 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={history} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
@@ -522,23 +538,23 @@ export function ExecutionCostSection() {
 
 function AllInCell({ cell, isWinner }: { cell: VenueCostCell; isWinner?: boolean }) {
   if (cell.allInUsd == null) {
-    return <span className="exec-cost-fee exec-cost-fee--na">—</span>;
+    return <span className="exec-cost-value exec-cost-value--na">—</span>;
   }
   return (
-    <div className={`exec-cost-allin ${isWinner ? "exec-cost-allin--win" : ""}`}>
-      <span className="exec-cost-allin__usd">{formatFeeUsd(cell.allInUsd)}</span>
-      <span className="exec-cost-allin__bps">{formatSlippageBps(cell.allInBps)}</span>
+    <div className={`exec-cost-value ${isWinner ? "exec-cost-value--win" : ""}`}>
+      <span className="exec-cost-value__primary">{formatFeeUsd(cell.allInUsd)}</span>
+      <span className="exec-cost-value__secondary">{formatSlippageBps(cell.allInBps)}</span>
     </div>
   );
 }
 
 function VenueLegend() {
   return (
-    <div className="exec-cost-legend">
+    <div className="exec-cost-legend venue-legend-row" aria-label="Venues">
       {EXECUTE_VENUES.map((v) => (
-        <span key={v.id}>
-          <i style={{ background: v.color }} />
-          {v.label}
+        <span key={v.id} className="exec-cost-legend__item">
+          <i className="exec-cost-legend__dot" style={{ background: v.color }} />
+          <span>{v.label}</span>
         </span>
       ))}
     </div>

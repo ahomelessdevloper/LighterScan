@@ -227,7 +227,7 @@ export function InflowOutflowSection({ embedded = false }: InflowOutflowSectionP
         {embedded && (
           <p className="flow-section__sub !m-0">Inflow vs outflow · select period</p>
         )}
-        <div className="flex gap-1 flex-wrap sm:ml-auto">
+        <div className="flex gap-1 flex-wrap sm:flex-nowrap sm:overflow-x-auto sm:scroll-fade-x sm:ml-auto">
           {FLOW_PERIODS.map((p) => (
             <button
               key={p.value}
@@ -254,7 +254,7 @@ export function InflowOutflowSection({ embedded = false }: InflowOutflowSectionP
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-2.5 sm:mb-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-2.5 sm:mb-3">
               <div className="stat-card stat-card--cyan">
                 <div className="stat-card__label">Total Inflow</div>
                 <div className="stat-card__value">{formatUSD(totals.inflow, true)}</div>

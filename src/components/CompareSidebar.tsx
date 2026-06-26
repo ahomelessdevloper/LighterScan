@@ -7,30 +7,23 @@ interface CompareSidebarProps {
 
 export function CompareSidebar({ active }: CompareSidebarProps) {
   return (
-    <div className="compare-picker">
-      <form className="compare-picker__form" onSubmit={(e) => e.preventDefault()}>
-        <div className="compare-picker__row">
-          <VenueDuel className="compare-picker__duel" size="sm" showNames={false} />
-          <div className="compare-picker__field">
-            <label htmlFor="compare-section-select" className="compare-picker__label">
-              Section
-            </label>
-            <select
-              id="compare-section-select"
-              className="compare-picker__select"
-              value={active}
-              onChange={(e) => navigateCompareTab(e.target.value as CompareTabId)}
-              aria-label="Compare section"
-            >
-              {COMPARE_TABS.map((tab) => (
-                <option key={tab.id} value={tab.id}>
-                  {tab.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </form>
-    </div>
+    <nav className="compare-tabs" aria-label="Compare sections">
+      <VenueDuel className="compare-tabs__duel" size="sm" showNames={false} />
+      {COMPARE_TABS.map((tab) => {
+        const isActive = active === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            className={`compare-tab ${isActive ? "compare-tab--active" : ""}`}
+            aria-current={isActive ? "page" : undefined}
+            onClick={() => navigateCompareTab(tab.id)}
+          >
+            <span className="compare-tab__full">{tab.label}</span>
+            <span className="compare-tab__short">{tab.short}</span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }

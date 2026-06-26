@@ -1,18 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoadingState } from "./LoadingState";
 import { ChartDownloadButton } from "./ChartDownloadButton";
+import { TableScrollZone } from "./TableScrollZone";
 import { chartDownloadFilename } from "../lib/chartDownload";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
   Cell,
   Pie,
   PieChart,
   ResponsiveContainer,
   Tooltip,
-  XAxis,
-  YAxis,
 } from "recharts";
 import { toast } from "sonner";
 import { formatUSD, formatNumber } from "../lib/api";
@@ -55,15 +51,84 @@ function SupplyTooltip({
   );
 }
 
+type SupplyDonutSlice = {
+  id: string;
+  label: string;
+  value: number;
+  pct: number;
+  color: string;
+};
+
+function LitSupplyDonut({
+  title,
+  data,
+  centerPct,
+  centerLabel,
+  accent,
+}: {
+  title: string;
+  data: SupplyDonutSlice[];
+  centerPct: string;
+  centerLabel: string;
+  accent?: string;
+}) {
+  return (
+    <div className="staking-supply-donut-card">
+      <h5 className="staking-supply-donut-card__title">{title}</h5>
+      <div className="staking-supply-donut">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="label"
+              cx="50%"
+              cy="50%"
+              innerRadius="56%"
+              outerRadius="84%"
+              paddingAngle={data.length > 1 ? 3 : 0}
+              stroke="none"
+              isAnimationActive={false}
+            >
+              {data.map((segment) => (
+                <Cell key={segment.id} fill={segment.color} />
+              ))}
+            </Pie>
+            <Tooltip content={<SupplyTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="staking-supply-donut__center">
+          <span
+            className="staking-supply-donut__pct"
+            style={accent ? { color: accent } : undefined}
+          >
+            {centerPct}
+          </span>
+          <span className="staking-supply-donut__label">{centerLabel}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LitSupplyChart({ supply }: { supply: LitSupplyBreakdown }) {
   const captureRef = useRef<HTMLElement>(null);
-  const barData = useMemo(
+
+  const tradingSplit = useMemo<SupplyDonutSlice[]>(
     () => [
       {
-        label: "Circulating",
-        staked: supply.stakedLit,
-        buyback: supply.totalBuybackLit,
-        inTrading: supply.inTrading,
+        id: "out_of_trading",
+        label: "Out of trading",
+        value: supply.outOfTrading,
+        pct: supply.outOfTradingPct,
+        color: "#fbbf24",
+      },
+      {
+        id: "in_trading",
+        label: "In trading",
+        value: supply.inTrading,
+        pct: supply.inTradingPct,
+        color: "#4ade80",
       },
     ],
     [supply]
@@ -105,69 +170,19 @@ function LitSupplyChart({ supply }: { supply: LitSupplyBreakdown }) {
       </header>
 
       <div className="staking-supply-charts">
-        <div className="staking-supply-donut">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={supply.segments}
-                dataKey="value"
-                nameKey="label"
-                cx="50%"
-                cy="50%"
-                innerRadius="58%"
-                outerRadius="82%"
-                paddingAngle={2}
-                stroke="none"
-                isAnimationActive={false}
-              >
-                {supply.segments.map((segment) => (
-                  <Cell key={segment.id} fill={segment.color} />
-                ))}
-              </Pie>
-              <Tooltip content={<SupplyTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="staking-supply-donut__center">
-            <span className="staking-supply-donut__pct">{supply.outOfTradingPct.toFixed(1)}%</span>
-            <span className="staking-supply-donut__label">out of trading</span>
-          </div>
-        </div>
-
-        <div className="staking-supply-bar-wrap">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={barData}
-              layout="vertical"
-              margin={{ top: 4, right: 8, left: 4, bottom: 4 }}
-              barSize={42}
-            >
-              <CartesianGrid strokeDasharray="2 2" stroke="#24263a" horizontal={false} />
-              <XAxis
-                type="number"
-                tick={{ fill: "#71717a", fontSize: 10 }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(v) => formatLitAmount(Number(v))}
-              />
-              <YAxis type="category" dataKey="label" hide />
-              <Tooltip
-                formatter={(value, name) => [
-                  `${formatLitAmount(Number(value ?? 0))} LIT`,
-                  name === "staked" ? "Staked" : name === "buyback" ? "Buyback" : "In trading",
-                ]}
-                contentStyle={{
-                  background: "#11131c",
-                  border: "1px solid #24263a",
-                  borderRadius: 10,
-                  fontSize: 12,
-                }}
-              />
-              <Bar dataKey="staked" stackId="supply" fill="#22d3ee" radius={[6, 0, 0, 6]} />
-              <Bar dataKey="buyback" stackId="supply" fill="#fbbf24" />
-              <Bar dataKey="inTrading" stackId="supply" fill="#4ade80" radius={[0, 6, 6, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <LitSupplyDonut
+          title="Supply mix"
+          data={supply.segments}
+          centerPct={`${supply.circulatingSupply > 0 ? "100" : "0"}%`}
+          centerLabel="circulating"
+        />
+        <LitSupplyDonut
+          title="Trading split"
+          data={tradingSplit}
+          centerPct={`${supply.inTradingPct.toFixed(1)}%`}
+          centerLabel="in trading"
+          accent="#4ade80"
+        />
       </div>
 
       <ul className="staking-supply-legend">
@@ -308,6 +323,7 @@ export function StakingSection() {
           <header className="staking-assets-head">
             <h4 className="staking-assets-head__title">Assets</h4>
           </header>
+          <TableScrollZone>
           <div className="table-scroll">
           <table className="w-full text-sm market-table asset-table">
             <thead>
@@ -338,6 +354,7 @@ export function StakingSection() {
             </tbody>
           </table>
           </div>
+          </TableScrollZone>
         </article>
       ) : null}
 

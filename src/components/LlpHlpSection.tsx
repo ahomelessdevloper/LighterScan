@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { LoadingState } from "./LoadingState";
 import { ChartDownloadButton } from "./ChartDownloadButton";
+import { TableScrollZone } from "./TableScrollZone";
 import { chartDownloadFilename } from "../lib/chartDownload";
 import {
   CartesianGrid,
@@ -409,6 +410,7 @@ export function LlpHlpSection() {
         {loading && !compareRows.length ? (
           <LoadingState label="Loading comparison…" minHeight={180} />
         ) : (
+          <TableScrollZone>
           <div className="table-scroll">
           <table className="w-full text-sm market-table llp-hlp-table">
             <thead>
@@ -441,6 +443,7 @@ export function LlpHlpSection() {
             </tbody>
           </table>
           </div>
+          </TableScrollZone>
         )}
       </div>
 
@@ -454,6 +457,7 @@ export function LlpHlpSection() {
           <header className="llp-hlp-assets-head">
             <h4 className="llp-hlp-assets-head__title">LLP assets</h4>
           </header>
+          <TableScrollZone>
           <div className="table-scroll">
           <table className="w-full text-sm market-table asset-table">
             <thead>
@@ -478,6 +482,7 @@ export function LlpHlpSection() {
             </tbody>
           </table>
           </div>
+          </TableScrollZone>
         </article>
       ) : null}
 

@@ -1,15 +1,16 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Search, X,
-  ArrowUpDown, ChevronRight
+  ArrowUpDown, ChevronRight, ChevronDown, ChevronUp
 } from 'lucide-react';
+import { TableScrollZone } from './components/TableScrollZone';
 import { SiteNav, type SiteView } from './components/SiteNav';
 import CompareHub from './pages/CompareHub';
 import SupportPage from './pages/SupportPage';
 
 import { getSiteViewFromHash, normalizeSupportHash, siteViewHash } from './lib/siteNav';
 import { 
-  Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Area, AreaChart, BarChart, Bar 
 } from 'recharts';
 import { format, fromUnixTime } from 'date-fns';
@@ -18,6 +19,8 @@ import { ChartDownloadButton } from './components/ChartDownloadButton';
 import { LoadingState } from './components/LoadingState';
 import { InflowOutflowSection } from './components/InflowOutflowSection';
 import { chartDownloadFilename } from './lib/chartDownload';
+import { DashboardTooltip } from './components/charts/DashboardTooltip';
+import { useIsMobile } from './hooks/useIsMobile';
 
 import type { ExchangeStats, OrderBookStat, ExchangeMetric, Period, MetricKind, DashboardMetricKind } from './types';
 import {
@@ -30,7 +33,13 @@ import {
   formatChange,
   formatNumber,
 } from './lib/api';
-import { METRIC_KINDS, PERIODS } from './types';
+import {
+  METRIC_KINDS,
+  METRIC_PERIOD_SUPPORT,
+  defaultPeriodForMetric,
+  isPeriodSupportedForMetric,
+  periodsForMetric,
+} from './types';
 
 interface ChartPoint {
   time: string;
@@ -66,22 +75,6 @@ const getCategory = (symbol: string): 'crypto' | 'equity' | 'rwa' => {
   return 'crypto';
 };
 
-function useIsMobile(breakpoint = 639) {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${breakpoint}px)`).matches : false
-  );
-
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
-    const update = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
-    update(mq);
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, [breakpoint]);
-
-  return isMobile;
-}
-
 function App() {
   const [view, setView] = useState<SiteView>(() => {
     normalizeSupportHash();
@@ -116,6 +109,7 @@ function App() {
  
   const [marketCategory, setMarketCategory] = useState<'all' | 'crypto' | 'rwa' | 'equity'>('all');
   const [showAllMarkets, setShowAllMarkets] = useState(false);
+  const [marketFiltersOpen, setMarketFiltersOpen] = useState(false);
 
  
   const [selectedKind, setSelectedKind] = useState<DashboardMetricKind>('volume');
@@ -238,16 +232,21 @@ function App() {
  
   const isMobile = useIsMobile();
 
-  const chartHeight = isMobile ? 175 : 420;
-  const chartLoadingHeight = isMobile ? 185 : 440;
-  const chartErrorHeight = isMobile ? 160 : 380;
-  const tickFontSize = isMobile ? 7.5 : 11;
+  const availablePeriods = useMemo(
+    () => periodsForMetric(selectedKind),
+    [selectedKind]
+  );
+
+  const chartHeight = isMobile ? 250 : 420;
+  const chartLoadingHeight = isMobile ? 265 : 440;
+  const chartErrorHeight = isMobile ? 220 : 380;
+  const tickFontSize = isMobile ? 10 : 11;
   const strokeWidth = isMobile ? 1.5 : 2.25;
   const barRadius: [number, number, number, number] = isMobile ? [1, 1, 0, 0] : [3, 3, 0, 0];
   const chartMargin = isMobile
-    ? { top: 2, right: 4, left: -4, bottom: 0 }
+    ? { top: 4, right: 6, left: 0, bottom: 0 }
     : { top: 8, right: 14, left: 2, bottom: 0 };
-  const yAxisWidth = isMobile ? 42 : 65;
+  const yAxisWidth = isMobile ? 48 : 65;
   const barMaxSize = isMobile ? 5 : 24;
 
   // Key Metrics list — prioritize Open Interest + 24H Volume at the top as requested
@@ -374,7 +373,10 @@ function App() {
         toFetch.map(async (k) => {
           try {
            
-            const res = await getExchangeMetrics('m', k.value);
+            const latestPeriod = METRIC_PERIOD_SUPPORT[k.value].includes('m')
+              ? 'm'
+              : defaultPeriodForMetric(k.value);
+            const res = await getExchangeMetrics(latestPeriod, k.value);
             if (res.metrics?.length) {
               newValues[k.value] = res.metrics[res.metrics.length - 1].data;
             }
@@ -419,6 +421,11 @@ function App() {
 
   useEffect(() => {
     if (selectedKind === 'capital_flow') return;
+    if (!isPeriodSupportedForMetric(selectedKind, selectedPeriod)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedPeriod(defaultPeriodForMetric(selectedKind));
+      return;
+    }
     const kindMeta = METRIC_KINDS.find(k => k.value === selectedKind);
     if (kindMeta && !kindMeta.supportsMarket && useMarketFilter) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -499,12 +506,7 @@ function App() {
   };
 
  
-  const tooltipFormatter = (value: number | string | null | undefined) => {
-    const num = typeof value === 'number' ? value : Number(value ?? 0);
-    return [formatValue(num), currentKindLabel];
-  };
 
- 
   const currentKindLabel =
     selectedKind === 'capital_flow'
       ? 'Capital Flow'
@@ -540,9 +542,9 @@ function App() {
 
       <SiteNav active="dashboard" onNavigate={navigate} />
 
-      <div className="max-w-[1280px] mx-auto w-full min-w-0 px-4 sm:px-6 pt-5 sm:pt-7 pb-10 sm:pb-16">
+      <div className="page-shell">
 
-        <div ref={statsCardsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-5 sm:mb-7 downloadable-block relative">
+        <div ref={statsCardsRef} className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-5 sm:mb-7 downloadable-block relative">
           <ChartDownloadButton
             targetRef={statsCardsRef}
             filename={chartDownloadFilename('dashboard-stats')}
@@ -592,6 +594,7 @@ function App() {
           </div>
           <div ref={keyMetricsRef} className="downloadable-block">
             <div className="card w-full min-w-0">
+              <TableScrollZone>
               <div className="table-scroll">
                 <table className="w-full text-sm market-table metrics-table">
                 <thead>
@@ -648,6 +651,7 @@ function App() {
                 </tbody>
               </table>
               </div>
+              </TableScrollZone>
             </div>
           </div>
         </div>
@@ -680,38 +684,55 @@ function App() {
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {(['all','crypto','rwa','equity'] as const).map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => { setMarketCategory(cat); setShowAllMarkets(false); }}
-                  className={`btn btn-sm text-xs min-w-[66px] justify-center ${marketCategory === cat ? 'btn-active' : ''} ${cat === 'crypto' ? 'btn-crypto' : cat === 'rwa' ? 'btn-rwa' : cat === 'equity' ? 'btn-equity' : ''}`}
-                >
-                  {cat === 'all' ? 'All' : cat.toUpperCase()}
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              className="markets-filters-toggle"
+              aria-expanded={marketFiltersOpen}
+              onClick={() => setMarketFiltersOpen((open) => !open)}
+            >
+              <span>Filters & sort</span>
+              {marketFiltersOpen ? (
+                <ChevronUp className="h-4 w-4 text-[#71717a]" aria-hidden="true" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-[#71717a]" aria-hidden="true" />
+              )}
+            </button>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              {(['volume', 'change', 'trades', 'symbol'] as const).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => toggleSort(key)}
-                  className={`btn btn-sm ${sortBy === key ? 'btn-active' : ''}`}
-                >
-                  {key === 'volume' && 'Volume'}
-                  {key === 'change' && '24h %'}
-                  {key === 'trades' && 'Trades'}
-                  {key === 'symbol' && 'Symbol'}
-                  {sortBy === key && <ArrowUpDown className="h-3 w-3 ml-1" />}
+            <div className={`markets-filters-panel ${marketFiltersOpen ? 'markets-filters-panel--open' : ''}`}>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {(['all','crypto','rwa','equity'] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => { setMarketCategory(cat); setShowAllMarkets(false); }}
+                    className={`btn btn-sm text-xs min-w-[66px] justify-center ${marketCategory === cat ? 'btn-active' : ''} ${cat === 'crypto' ? 'btn-crypto' : cat === 'rwa' ? 'btn-rwa' : cat === 'equity' ? 'btn-equity' : ''}`}
+                  >
+                    {cat === 'all' ? 'All' : cat.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {(['volume', 'change', 'trades', 'symbol'] as const).map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => toggleSort(key)}
+                    className={`btn btn-sm ${sortBy === key ? 'btn-active' : ''}`}
+                  >
+                    {key === 'volume' && 'Volume'}
+                    {key === 'change' && '24h %'}
+                    {key === 'trades' && 'Trades'}
+                    {key === 'symbol' && 'Symbol'}
+                    {sortBy === key && <ArrowUpDown className="h-3 w-3 ml-1" />}
+                  </button>
+                ))}
+                <button onClick={() => { setSearch(''); setSortBy('volume'); setSortDir('desc'); setShowAllMarkets(false); }} className="btn btn-sm text-[#71717a]">
+                  Reset
                 </button>
-              ))}
-              <button onClick={() => { setSearch(''); setSortBy('volume'); setSortDir('desc'); setShowAllMarkets(false); }} className="btn btn-sm text-[#71717a]">
-                Reset
-              </button>
+              </div>
             </div>
           </div>
 
+          <TableScrollZone className="px-0">
           <div className="table-scroll markets-scroll">
             <table className="w-full text-sm market-table markets-table">
               <thead>
@@ -787,6 +808,7 @@ function App() {
               </tbody>
             </table>
           </div>
+          </TableScrollZone>
 
           {filteredMarkets.length > 10 && (
             <div className="p-3 sm:p-4 border-t border-[#24263a] bg-[#10121a] flex justify-center">
@@ -808,74 +830,80 @@ function App() {
           </div>
 
           {!isCapitalFlow && (
-            <div className="card p-3 sm:p-4 mb-2.5">
-              <div className="flex flex-col gap-3">
-                <div className="text-sm text-white">
-                  {currentKindLabel}
-                  <span className="text-[#71717a]">
-                    {' · '}{PERIODS.find(p => p.value === selectedPeriod)?.label}
-                    {useMarketFilter && selectedMarket ? ` · ${selectedMarket}` : ''}
-                  </span>
-                </div>
-
-                <div className="flex gap-1 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
-                  {PERIODS.map((p) => (
-                    <button
-                      key={p.value}
-                      onClick={() => setSelectedPeriod(p.value)}
-                      className={`btn btn-sm flex-shrink-0 text-xs ${selectedPeriod === p.value ? 'btn-active' : ''}`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs text-[#a1a1aa]">
-                    <input
-                      type="checkbox"
-                      checked={useMarketFilter}
-                      disabled={!METRIC_KINDS.find(k => k.value === selectedKind)?.supportsMarket}
-                      onChange={(e) => setUseMarketFilter(e.target.checked)}
-                      className="accent-[#22d3ee] w-3 h-3"
-                    />
-                    Filter by market
-                  </label>
-                  {useMarketFilter && (
-                    <>
-                      <select
-                        value={selectedMarket}
-                        onChange={(e) => setSelectedMarket(e.target.value)}
-                        className="select text-xs min-w-[88px] py-1"
-                      >
-                        <option value="">Select…</option>
-                        {marketSymbols.slice(0, 60).map(sym => (
-                          <option key={sym} value={sym}>{sym}</option>
-                        ))}
-                      </select>
-                      <button onClick={clearMarketFilter} className="btn btn-sm p-1 text-[#ef4444]">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#24263a]">
-                  <div className="flex gap-1">
+            <div className="card surface-card p-3 sm:p-4 mb-2.5">
+              <div className="chart-toolbar">
+                <div className="chart-toolbar__head">
+                  <div>
+                    <h3 className="chart-toolbar__title">{currentKindLabel}</h3>
+                    <p className="chart-toolbar__meta">
+                      {availablePeriods.find(p => p.value === selectedPeriod)?.label}
+                      {useMarketFilter && selectedMarket ? ` · ${selectedMarket}` : ''}
+                    </p>
+                  </div>
+                  <div className="chart-type-tabs" role="tablist" aria-label="Chart type">
                     {([
                       { value: 'area', label: 'Area' },
                       { value: 'bar', label: 'Bar' },
                     ] as const).map((ct) => (
                       <button
                         key={ct.value}
+                        type="button"
+                        role="tab"
+                        aria-selected={chartType === ct.value}
                         onClick={() => setChartType(ct.value)}
-                        className={`btn btn-sm text-xs ${chartType === ct.value ? 'btn-active' : ''}`}
+                        className={`chart-type-tab ${chartType === ct.value ? 'chart-type-tab--active' : ''}`}
                       >
                         {ct.label}
                       </button>
                     ))}
                   </div>
                 </div>
+
+                <div className="chart-toolbar__row">
+                  <div className="timeframe-tabs" role="tablist" aria-label="Time period">
+                    {availablePeriods.map((p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        role="tab"
+                        aria-selected={selectedPeriod === p.value}
+                        onClick={() => setSelectedPeriod(p.value)}
+                        className={`timeframe-tab ${selectedPeriod === p.value ? 'timeframe-tab--active' : ''}`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs text-[#a1a1aa] shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={useMarketFilter}
+                      disabled={!METRIC_KINDS.find(k => k.value === selectedKind)?.supportsMarket}
+                      onChange={(e) => setUseMarketFilter(e.target.checked)}
+                      className="accent-[#22d3ee] w-3.5 h-3.5"
+                    />
+                    Market
+                  </label>
+                </div>
+
+                {useMarketFilter && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={selectedMarket}
+                      onChange={(e) => setSelectedMarket(e.target.value)}
+                      className="select text-xs min-w-[120px] py-1.5 flex-1 sm:flex-none"
+                    >
+                      <option value="">Select market…</option>
+                      {marketSymbols.slice(0, 60).map(sym => (
+                        <option key={sym} value={sym}>{sym}</option>
+                      ))}
+                    </select>
+                    <button onClick={clearMarketFilter} className="btn btn-sm p-1.5 text-[#ef4444]" aria-label="Clear market filter">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -886,7 +914,7 @@ function App() {
               <InflowOutflowSection embedded />
             </div>
           ) : (
-          <div className="card p-2 lg:p-4">
+          <div className="card surface-card p-2 sm:p-3 lg:p-4">
             {metricsLoading ? (
               <LoadingState
                 variant="chart"
@@ -901,18 +929,18 @@ function App() {
             ) : chartData.length > 0 ? (
               <>
                 <div ref={chartExportRef}>
-                  <div style={{ height: `${chartHeight}px` }} className="w-full px-0.5">
+                  <div style={{ height: `${chartHeight}px` }} className="dashboard-chart chart-surface compare-chart w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       {chartType === 'area' && (
                         <AreaChart data={chartData} margin={chartMargin}>
                           <defs>
                             <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.45}/>
-                              <stop offset="35%" stopColor="#67e8f9" stopOpacity={0.28}/>
-                              <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.03}/>
+                              <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.35}/>
+                              <stop offset="55%" stopColor="#22d3ee" stopOpacity={0.12}/>
+                              <stop offset="100%" stopColor="#22d3ee" stopOpacity={0}/>
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="2 2" stroke="#24263a" />
+                          <CartesianGrid strokeDasharray="3 6" stroke="rgba(36, 38, 58, 0.9)" vertical={false} />
                           <XAxis
                             dataKey="ts"
                             type="number"
@@ -920,26 +948,44 @@ function App() {
                             domain={['dataMin', 'dataMax']}
                             tickFormatter={(ts) => formatChartAxisLabel(Number(ts), selectedPeriod)}
                             tick={{ fill: '#71717a', fontSize: tickFontSize }}
-                            tickLine={{ stroke: '#24263a' }}
-                            minTickGap={isMobile ? 18 : 32}
+                            tickLine={false}
+                            axisLine={false}
+                            minTickGap={isMobile ? 22 : 36}
+                            dy={4}
                           />
-                          <YAxis tickFormatter={formatValue} tick={{ fill: '#71717a', fontSize: tickFontSize }} tickLine={{ stroke: '#24263a' }} width={yAxisWidth} />
-                          <Tooltip 
-                            contentStyle={{ background: '#15171f', border: '1px solid #32354a', borderRadius: 8, color: '#f4f4f5', fontSize: '10px' }} 
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            formatter={tooltipFormatter as any}
+                          <YAxis
+                            tickFormatter={formatValue}
+                            tick={{ fill: '#71717a', fontSize: tickFontSize }}
+                            tickLine={false}
+                            axisLine={false}
+                            width={yAxisWidth}
+                          />
+                          <Tooltip
+                            content={
+                              <DashboardTooltip
+                                valueLabel={currentKindLabel}
+                                formatValue={formatValue}
+                              />
+                            }
                             labelFormatter={(ts) => formatChartTooltipLabel(Number(ts))}
-                            labelStyle={{ color: '#a1a1aa' }} 
-                            cursor={{ fill: 'rgba(34,211,238,0.06)' }}
+                            cursor={{ stroke: 'rgba(34, 211, 238, 0.25)', strokeWidth: 1, strokeDasharray: '4 4' }}
                           />
-                          <Area type="monotone" dataKey="value" stroke="#22d3ee" strokeWidth={strokeWidth} fill="url(#colorValue)" />
-                          <Line type="natural" dataKey="value" stroke="#67e8f9" strokeWidth={1} dot={false} />
+                          <Area
+                            type="monotone"
+                            dataKey="value"
+                            name={currentKindLabel}
+                            stroke="#22d3ee"
+                            strokeWidth={strokeWidth}
+                            fill="url(#colorValue)"
+                            activeDot={{ r: 3, stroke: '#0a0b12', strokeWidth: 1, fill: '#67e8f9' }}
+                            isAnimationActive={false}
+                          />
                         </AreaChart>
                       )}
 
                       {chartType === 'bar' && (
                         <BarChart data={chartData} margin={chartMargin}>
-                          <CartesianGrid strokeDasharray="2 2" stroke="#24263a" />
+                          <CartesianGrid strokeDasharray="3 6" stroke="rgba(36, 38, 58, 0.9)" vertical={false} />
                           <XAxis
                             dataKey="ts"
                             type="number"
@@ -947,24 +993,37 @@ function App() {
                             domain={['dataMin', 'dataMax']}
                             tickFormatter={(ts) => formatChartAxisLabel(Number(ts), selectedPeriod)}
                             tick={{ fill: '#71717a', fontSize: tickFontSize }}
-                            tickLine={{ stroke: '#24263a' }}
-                            minTickGap={isMobile ? 18 : 32}
+                            tickLine={false}
+                            axisLine={false}
+                            minTickGap={isMobile ? 22 : 36}
+                            dy={4}
                           />
-                          <YAxis tickFormatter={formatValue} tick={{ fill: '#71717a', fontSize: tickFontSize }} tickLine={{ stroke: '#24263a' }} width={yAxisWidth} />
-                          <Tooltip 
-                            contentStyle={{ background: '#15171f', border: '1px solid #32354a', borderRadius: 8, color: '#f4f4f5', fontSize: '10px' }} 
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            formatter={tooltipFormatter as any}
+                          <YAxis
+                            tickFormatter={formatValue}
+                            tick={{ fill: '#71717a', fontSize: tickFontSize }}
+                            tickLine={false}
+                            axisLine={false}
+                            width={yAxisWidth}
+                          />
+                          <Tooltip
+                            content={
+                              <DashboardTooltip
+                                valueLabel={currentKindLabel}
+                                formatValue={formatValue}
+                              />
+                            }
                             labelFormatter={(ts) => formatChartTooltipLabel(Number(ts))}
-                            labelStyle={{ color: '#a1a1aa' }} 
-                            cursor={{ fill: 'rgba(103,232,249,0.06)' }}
+                            cursor={{ fill: 'rgba(34, 211, 238, 0.06)' }}
                           />
-                          <Bar 
-                            dataKey="value" 
-                            fill="#67e8f9" 
-                            radius={barRadius} 
+                          <Bar
+                            dataKey="value"
+                            name={currentKindLabel}
+                            fill="#67e8f9"
+                            fillOpacity={0.88}
+                            radius={barRadius}
                             activeBar={false}
                             maxBarSize={barMaxSize}
+                            isAnimationActive={false}
                           />
                         </BarChart>
                       )}
@@ -972,12 +1031,27 @@ function App() {
                   </div>
 
                   {chartSummary && (
-                    <div className="chart-summary grid grid-cols-5 gap-x-1 sm:gap-x-2 gap-y-0.5 sm:gap-y-1 border-t border-[#24263a] pt-1 sm:pt-1.5 px-0.5 sm:px-1 text-[9px] sm:text-xs md:text-sm mt-0.5 sm:mt-1">
-                      <div><span className="text-[#71717a]">pts </span><span className="font-normal tabular-nums">{chartSummary.count}</span></div>
-                      <div><span className="text-[#71717a]">sum </span><span className="font-normal tabular-nums text-white">{formatValue(chartSummary.sum)}</span></div>
-                      <div><span className="text-[#71717a]">avg </span><span className="font-normal tabular-nums">{formatValue(chartSummary.avg)}</span></div>
-                      <div><span className="text-[#71717a]">peak </span><span className="font-normal tabular-nums text-[#34d399]">{formatValue(chartSummary.max)}</span></div>
-                      <div><span className="text-[#71717a]">low </span><span className="font-normal tabular-nums text-[#fb7185]">{formatValue(chartSummary.min)}</span></div>
+                    <div className="chart-summary-grid">
+                      <div className="chart-summary-item">
+                        <span className="chart-summary-item__label">Points</span>
+                        <span className="chart-summary-item__value">{chartSummary.count}</span>
+                      </div>
+                      <div className="chart-summary-item">
+                        <span className="chart-summary-item__label">Sum</span>
+                        <span className="chart-summary-item__value">{formatValue(chartSummary.sum)}</span>
+                      </div>
+                      <div className="chart-summary-item">
+                        <span className="chart-summary-item__label">Avg</span>
+                        <span className="chart-summary-item__value">{formatValue(chartSummary.avg)}</span>
+                      </div>
+                      <div className="chart-summary-item">
+                        <span className="chart-summary-item__label">Peak</span>
+                        <span className="chart-summary-item__value chart-summary-item__value--up">{formatValue(chartSummary.max)}</span>
+                      </div>
+                      <div className="chart-summary-item">
+                        <span className="chart-summary-item__label">Low</span>
+                        <span className="chart-summary-item__value chart-summary-item__value--down">{formatValue(chartSummary.min)}</span>
+                      </div>
                     </div>
                   )}
                 </div>

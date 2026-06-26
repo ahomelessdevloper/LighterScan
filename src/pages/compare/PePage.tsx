@@ -37,7 +37,7 @@ export default function PePage() {
         ))}
       </div>
       {payload.valuation_charts && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
           {ratioCharts.map((definition) => (
             <RatioLineCard
               key={definition.key}

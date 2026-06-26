@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { ChartDownloadButton } from "../ChartDownloadButton";
 import { chartDownloadFilename } from "../../lib/chartDownload";
 import {
@@ -92,23 +93,7 @@ export function ComingSoonPanel({ title }: { title: string }) {
   );
 }
 
-export function useIsMobile(breakpoint = 639) {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia(`(max-width: ${breakpoint}px)`).matches
-      : false
-  );
-
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
-    const update = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
-    update(mq);
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, [breakpoint]);
-
-  return isMobile;
-}
+export { useIsMobile } from "../../hooks/useIsMobile";
 
 export function availableMetrics(metrics: StatValue[]): StatValue[] {
   return metrics.filter((m) => m.lighter != null || m.hyperliquid != null);
@@ -165,7 +150,7 @@ export function MetricBarCard({
       />
       <h4 className="text-xs sm:text-sm font-normal text-white mb-1 pr-8">{metric.label}</h4>
       <MetricValues metric={metric} />
-      <div className="compare-chart" style={{ height }}>
+      <div className="compare-chart chart-surface" style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 2, right: 2, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="2 2" stroke="#24263a" vertical={false} />
@@ -317,7 +302,7 @@ export function RatioLineCard({
       />
       <h4 className="text-xs sm:text-sm font-normal text-white mb-1 pr-8">{label}</h4>
       {latest ? <MetricValues metric={latest} /> : null}
-      <div className="compare-chart compare-chart--line" style={{ height }}>
+      <div className="compare-chart compare-chart--line chart-surface" style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={LINE_CHART_MARGIN}>
             <CartesianGrid strokeDasharray="2 2" stroke="#24263a" vertical={false} />
@@ -390,7 +375,7 @@ export function FeesAreaChart({
 
   return (
     <article className="card p-2.5 sm:p-3">
-      <div className="compare-chart" style={{ height }}>
+      <div className="compare-chart chart-surface" style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={feesChartData} margin={{ top: 2, right: 4, left: -10, bottom: 0 }}>
             <defs>
@@ -452,10 +437,10 @@ export function FeesAreaChart({
 
 export function useCompareCharts(payload: LiveComparisonPayload | null) {
   const isMobile = useIsMobile();
-  const barHeight = isMobile ? 130 : 160;
-  const lineHeight = isMobile ? 170 : 200;
-  const areaHeight = isMobile ? 200 : 240;
-  const tickSize = isMobile ? 8 : 10;
+  const barHeight = isMobile ? 150 : 160;
+  const lineHeight = isMobile ? 190 : 200;
+  const areaHeight = isMobile ? 220 : 240;
+  const tickSize = isMobile ? 10 : 10;
 
   const headline = useMemo(
     () => (payload ? availableMetrics(payload.headline) : []),

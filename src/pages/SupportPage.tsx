@@ -66,7 +66,7 @@ export default function SupportPage({ onNavigate }: SupportPageProps) {
     <div className="min-h-screen bg-[#0a0b12] text-white">
       <SiteNav active="support" onNavigate={onNavigate} />
 
-      <main className="support-page max-w-[720px] mx-auto w-full min-w-0 px-4 sm:px-6 pt-6 sm:pt-10 pb-12 sm:pb-16">
+      <main className="support-page page-shell max-w-[720px]">
         <header className="support-page__head">
           <span className="support-page__badge">
             <HeartHandshake className="support-page__badge-icon" aria-hidden="true" />
@@ -256,12 +256,11 @@ export default function SupportPage({ onNavigate }: SupportPageProps) {
             href={TRADE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="trade-page__cta site-nav__cta"
+            className="trade-page__cta"
           >
-            <span className="site-nav__cta-shine" aria-hidden="true" />
-            <Activity className="site-nav__cta-icon" aria-hidden="true" />
-            <span className="site-nav__cta-label">Open Lighter and trade</span>
-            <ExternalLink className="site-nav__cta-ext" aria-hidden="true" />
+            <Activity className="trade-page__cta-icon" aria-hidden="true" />
+            <span>Open Lighter and trade</span>
+            <ExternalLink className="trade-page__cta-ext" aria-hidden="true" />
           </a>
         </section>
 

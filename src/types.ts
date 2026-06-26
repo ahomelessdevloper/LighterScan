@@ -53,6 +53,42 @@ export type MetricKind =
 
 export type DashboardMetricKind = MetricKind | 'capital_flow';
 
+const LONG_METRIC_PERIODS: Period[] = ['w', 'm', 'q', 'y', 'all'];
+const TPS_METRIC_PERIODS: Period[] = ['h', 'd', 'w'];
+
+/** Periods supported by Lighter exchangeMetrics per kind (verified against API). */
+export const METRIC_PERIOD_SUPPORT: Record<MetricKind, Period[]> = {
+  volume: LONG_METRIC_PERIODS,
+  trade_count: LONG_METRIC_PERIODS,
+  open_interest: LONG_METRIC_PERIODS,
+  tps: TPS_METRIC_PERIODS,
+  active_account_count: LONG_METRIC_PERIODS,
+  account_count: LONG_METRIC_PERIODS,
+  liquidation_volume: LONG_METRIC_PERIODS,
+  maker_fee: LONG_METRIC_PERIODS,
+  taker_fee: LONG_METRIC_PERIODS,
+  withdraw_fee: LONG_METRIC_PERIODS,
+  buyback: LONG_METRIC_PERIODS,
+  buyback_usdc: LONG_METRIC_PERIODS,
+  fee_revenue: LONG_METRIC_PERIODS,
+};
+
+export function periodsForMetric(kind: DashboardMetricKind): { value: Period; label: string }[] {
+  if (kind === 'capital_flow') return FLOW_PERIODS;
+  const allowed = new Set(METRIC_PERIOD_SUPPORT[kind]);
+  return PERIODS.filter((p) => allowed.has(p.value));
+}
+
+export function defaultPeriodForMetric(kind: DashboardMetricKind): Period {
+  const options = periodsForMetric(kind);
+  const preferred = options.find((p) => p.value === 'm') ?? options.find((p) => p.value === 'w');
+  return preferred?.value ?? options[0]?.value ?? 'm';
+}
+
+export function isPeriodSupportedForMetric(kind: DashboardMetricKind, period: Period): boolean {
+  return periodsForMetric(kind).some((p) => p.value === period);
+}
+
 export const METRIC_KINDS: { value: MetricKind; label: string; supportsMarket: boolean }[] = [
   { value: 'volume', label: 'Volume (USD)', supportsMarket: true },
   { value: 'trade_count', label: 'Trade Count', supportsMarket: true },
@@ -69,7 +105,7 @@ export const METRIC_KINDS: { value: MetricKind; label: string; supportsMarket: b
   { value: 'fee_revenue', label: 'Revenue', supportsMarket: false },
 ];
 
-export const PERIODS: { value: Period; label: string; minForVolume?: boolean }[] = [
+export const PERIODS: { value: Period; label: string }[] = [
   { value: 'h', label: '1H' },
   { value: 'd', label: '24H' },
   { value: 'w', label: '7D' },
@@ -78,3 +114,4 @@ export const PERIODS: { value: Period; label: string; minForVolume?: boolean }[]
   { value: 'y', label: '1Y' },
   { value: 'all', label: 'All' },
 ];
+

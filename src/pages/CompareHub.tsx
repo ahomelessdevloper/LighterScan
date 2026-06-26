@@ -50,7 +50,7 @@ export default function CompareHub({ onNavigate }: CompareHubProps) {
   return (
     <div className="min-h-screen bg-[#0a0b12] text-white">
       <SiteNav active="compare" onNavigate={onNavigate} />
-      <div className="compare-shell w-full min-w-0 max-w-[1440px] mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-10 sm:pb-14">
+      <div className="compare-shell page-shell">
         <CompareSidebar active={tab} />
         <main className="compare-main">{Page && <Page />}</main>
       </div>

@@ -1,5 +1,4 @@
-import { Heart, LayoutGrid, Scale } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Heart } from "lucide-react";
 import type { ReactNode } from "react";
 import { BRAND_ASSETS } from "../lib/brandAssets";
 
@@ -14,59 +13,56 @@ interface SiteNavProps {
 const MAIN_TABS: Array<{
   id: Exclude<SiteView, "support">;
   label: string;
-  icon: LucideIcon;
 }> = [
-  { id: "dashboard", label: "Stats", icon: LayoutGrid },
-  { id: "compare", label: "Compare", icon: Scale },
+  { id: "dashboard", label: "Stats" },
+  { id: "compare", label: "Compare" },
 ];
 
 export function SiteNav({ active, onNavigate, actions }: SiteNavProps) {
   return (
     <header className="site-nav" data-view={active}>
-      <div className="site-nav__beam" aria-hidden="true" />
-      <div className="site-nav__mesh" aria-hidden="true" />
-
       <div className="site-nav__shell">
         <div className="site-nav__bar">
-          <button
-            type="button"
-            onClick={() => onNavigate("dashboard")}
-            className="site-nav__brand"
-            aria-label="LighterLlama home"
-          >
-            <img
-              src={BRAND_ASSETS.logoWordmark}
-              alt="LighterLlama"
-              className="site-nav__brand-wordmark"
-              height={30}
-            />
-          </button>
+          <div className="site-nav__col site-nav__col--start">
+            <button
+              type="button"
+              onClick={() => onNavigate("dashboard")}
+              className="site-nav__brand"
+              aria-label="LighterLlama home"
+            >
+              <img
+                src={BRAND_ASSETS.logoWordmark}
+                alt="LighterLlama"
+                className="site-nav__brand-wordmark"
+                height={28}
+              />
+            </button>
+          </div>
 
-          <span className="site-nav__rule" aria-hidden="true" />
-
-          <nav className="site-nav__dock" aria-label="Main">
-            {MAIN_TABS.map((tab) => {
-              const isActive = active === tab.id;
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  aria-current={isActive ? "page" : undefined}
-                  onClick={() => onNavigate(tab.id)}
-                  className={`site-nav__link ${isActive ? "site-nav__link--active" : ""}`}
-                >
-                  <Icon className="site-nav__link-icon" aria-hidden="true" />
-                  <span className="site-nav__link-label">{tab.label}</span>
-                  {isActive && <span className="site-nav__link-glow" aria-hidden="true" />}
-                </button>
-              );
-            })}
+          <nav className="site-nav__col site-nav__col--center" aria-label="Main">
+            <ul className="site-nav__menu">
+              {MAIN_TABS.map((tab) => {
+                const isActive = active === tab.id;
+                return (
+                  <li key={tab.id}>
+                    <button
+                      type="button"
+                      aria-current={isActive ? "page" : undefined}
+                      onClick={() => onNavigate(tab.id)}
+                      className={`site-nav__link ${isActive ? "site-nav__link--active" : ""}`}
+                    >
+                      <span className="site-nav__link-text">{tab.label}</span>
+                      {isActive && (
+                        <span className="site-nav__link-indicator" aria-hidden="true" />
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           </nav>
 
-          <div className="site-nav__spacer" aria-hidden="true" />
-
-          <div className="site-nav__actions">
+          <div className="site-nav__col site-nav__col--end">
             <button
               type="button"
               aria-current={active === "support" ? "page" : undefined}
@@ -75,7 +71,6 @@ export function SiteNav({ active, onNavigate, actions }: SiteNavProps) {
                 active === "support" ? "site-nav__cta--active" : ""
               }`}
             >
-              <span className="site-nav__cta-shine" aria-hidden="true" />
               <Heart className="site-nav__cta-icon" aria-hidden="true" />
               <span className="site-nav__cta-label">Donate</span>
             </button>
