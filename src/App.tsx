@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Search, X,
-  ArrowUpDown, ChevronRight, ChevronDown, ChevronUp
+  ArrowUpDown, ChevronRight, ChevronDown, ChevronUp,
+  BarChart3, Activity, Layers, Flame,
 } from 'lucide-react';
 import { TableScrollZone } from './components/TableScrollZone';
 import { SiteNav, type SiteView } from './components/SiteNav';
@@ -15,10 +16,8 @@ import {
 } from 'recharts';
 import { format, fromUnixTime } from 'date-fns';
 import { toast } from 'sonner';
-import { ChartDownloadButton } from './components/ChartDownloadButton';
 import { LoadingState } from './components/LoadingState';
 import { InflowOutflowSection } from './components/InflowOutflowSection';
-import { chartDownloadFilename } from './lib/chartDownload';
 import { DashboardTooltip } from './components/charts/DashboardTooltip';
 import { useIsMobile } from './hooks/useIsMobile';
 
@@ -124,12 +123,6 @@ function App() {
  
   type ChartType = 'area' | 'bar';
   const [chartType, setChartType] = useState<ChartType>('area');
-
- 
-  const chartExportRef = useRef<HTMLDivElement>(null);
-
- 
-  const marketsExportRef = useRef<HTMLDivElement>(null);
 
  
   const [latestMetricValues, setLatestMetricValues] = useState<Partial<Record<MetricKind, number>>>({});
@@ -446,19 +439,6 @@ function App() {
     return () => clearInterval(interval);
   }, [selectedKind, selectedPeriod, useMarketFilter, selectedMarket]);
 
-  const statsCardsRef = useRef<HTMLDivElement>(null);
-  const keyMetricsRef = useRef<HTMLDivElement>(null);
-
-  const chartExportFilename = useMemo(() => {
-    const marketPart = useMarketFilter && selectedMarket ? `-${selectedMarket}` : '';
-    return chartDownloadFilename(`${selectedKind}${marketPart}-${selectedPeriod}`);
-  }, [selectedKind, selectedPeriod, selectedMarket, useMarketFilter]);
-
-  const marketsExportFilename = useMemo(() => {
-    const cat = marketCategory === 'all' ? 'all' : marketCategory;
-    const mode = showAllMarkets ? 'all' : 'top10';
-    return chartDownloadFilename(`markets-${cat}-${mode}`);
-  }, [marketCategory, showAllMarkets]);
   const toggleSort = (key: 'volume' | 'change' | 'trades' | 'symbol') => {
     if (sortBy === key) {
       setSortDir(sortDir === 'desc' ? 'asc' : 'desc');
@@ -538,33 +518,60 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0b12] text-white">
+    <div className="dashboard-page min-h-screen text-white">
 
       <SiteNav active="dashboard" onNavigate={navigate} />
 
-      <div className="page-shell">
+      <div className="page-shell dashboard-shell">
+        <div className="dashboard-ambient" aria-hidden="true">
+          <span className="dashboard-ambient__orb dashboard-ambient__orb--cyan" />
+          <span className="dashboard-ambient__orb dashboard-ambient__orb--violet" />
+        </div>
 
-        <div ref={statsCardsRef} className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-5 sm:mb-7 downloadable-block relative">
-          <ChartDownloadButton
-            targetRef={statsCardsRef}
-            filename={chartDownloadFilename('dashboard-stats')}
-            className="downloadable-block__dl"
-          />
-          <div className="stat-card stat-card--cyan">
+        <header className="dashboard-hero">
+          <div className="dashboard-hero__copy">
+            <p className="dashboard-hero__eyebrow">Lighter exchange</p>
+            <h1 className="dashboard-hero__title">Market overview</h1>
+            <p className="dashboard-hero__sub">Live stats, markets, and historical metrics in one place.</p>
+          </div>
+          <div className="dashboard-hero__meta">
+            <span className={`dashboard-live-pill ${statsLoading ? '' : 'dashboard-live-pill--on'}`}>
+              <span className="dashboard-live-pill__dot" aria-hidden="true" />
+              {statsLoading ? 'Syncing' : 'Live'}
+            </span>
+            {markets[0] && (
+              <span className="dashboard-hero__chip">
+                Leading <strong>{markets[0].symbol}</strong>
+              </span>
+            )}
+          </div>
+        </header>
+
+        <div className="dashboard-stats-grid">
+          <div className="stat-card stat-card--cyan dashboard-stat-card">
+            <div className="dashboard-stat-card__icon dashboard-stat-card__icon--cyan" aria-hidden="true">
+              <BarChart3 className="h-4 w-4" />
+            </div>
             <div className="stat-card__label">24H Volume</div>
             <div className="stat-card__value">
               {statsLoading && !stats ? '—' : formatUSD(stats?.daily_usd_volume ?? 0)}
             </div>
           </div>
 
-          <div className="stat-card stat-card--violet">
+          <div className="stat-card stat-card--violet dashboard-stat-card">
+            <div className="dashboard-stat-card__icon dashboard-stat-card__icon--violet" aria-hidden="true">
+              <Activity className="h-4 w-4" />
+            </div>
             <div className="stat-card__label">24H Trades</div>
             <div className="stat-card__value">
               {statsLoading && !stats ? '—' : formatNumber(totalDailyTrades)}
             </div>
           </div>
 
-          <div className="stat-card stat-card--emerald">
+          <div className="stat-card stat-card--emerald dashboard-stat-card">
+            <div className="dashboard-stat-card__icon dashboard-stat-card__icon--emerald" aria-hidden="true">
+              <Layers className="h-4 w-4" />
+            </div>
             <div className="stat-card__label">Open Interest</div>
             <div className="stat-card__value">
               {latestMetricValues['open_interest'] !== undefined
@@ -573,7 +580,10 @@ function App() {
             </div>
           </div>
 
-          <div className="stat-card stat-card--amber">
+          <div className="stat-card stat-card--amber dashboard-stat-card">
+            <div className="dashboard-stat-card__icon dashboard-stat-card__icon--amber" aria-hidden="true">
+              <Flame className="h-4 w-4" />
+            </div>
             <div className="stat-card__label">Top Market</div>
             <div className="stat-card__value text-lg sm:text-xl">
               {markets[0] ? markets[0].symbol : '—'}
@@ -584,16 +594,10 @@ function App() {
           </div>
         </div>
 
-        <div className="mb-5 sm:mb-7 w-full">
-          <div className="card-head-dl mb-2.5">
-            <h2 className="section-title card-head-dl__title !mb-0">Key Metrics</h2>
-            <ChartDownloadButton
-              targetRef={keyMetricsRef}
-              filename={chartDownloadFilename('key-metrics')}
-            />
-          </div>
-          <div ref={keyMetricsRef} className="downloadable-block">
-            <div className="card w-full min-w-0">
+        <section className="dashboard-section">
+          <h2 className="dashboard-section__title">Key Metrics</h2>
+          <div>
+            <div className="card dashboard-card w-full min-w-0">
               <TableScrollZone>
               <div className="table-scroll">
                 <table className="w-full text-sm market-table metrics-table">
@@ -654,21 +658,18 @@ function App() {
               </TableScrollZone>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div ref={marketsExportRef} className="w-full">
-          <div className="card-head-dl mb-2.5">
-            <h2 className="section-title card-head-dl__title !mb-0">Markets</h2>
-            <ChartDownloadButton targetRef={marketsExportRef} filename={marketsExportFilename} />
-          </div>
-          <div className="card mb-6 sm:mb-8 w-full min-w-0">
+        <section className="dashboard-section">
+          <h2 className="dashboard-section__title">Markets</h2>
+          <div className="card dashboard-card dashboard-card--markets mb-6 sm:mb-8 w-full min-w-0">
             <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 pt-3 pb-1">
               <span className="text-[11px] text-[#71717a] tabular-nums">
                 {showAllMarkets ? filteredMarkets.length : Math.min(10, filteredMarkets.length)} of {filteredMarkets.length}
               </span>
             </div>
 
-          <div className="flex flex-col gap-2 p-3 border-b border-[#24263a]">
+          <div className="dashboard-markets-toolbar flex flex-col gap-2 p-3 border-b border-[#24263a]">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#71717a]" />
               <input
@@ -821,16 +822,13 @@ function App() {
             </div>
           )}
         </div>
-        </div>
+        </section>
 
-        <div id="explorer" className="scroll-mt-20">
-          <div className="card-head-dl mb-2.5">
-            <h2 className="section-title card-head-dl__title !mb-0">Historical Metrics</h2>
-            <ChartDownloadButton targetRef={chartExportRef} filename={chartExportFilename} />
-          </div>
+        <section id="explorer" className="dashboard-section scroll-mt-20">
+          <h2 className="dashboard-section__title">Historical Metrics</h2>
 
           {!isCapitalFlow && (
-            <div className="card surface-card p-3 sm:p-4 mb-2.5">
+            <div className="card dashboard-card surface-card p-3 sm:p-4 mb-2.5">
               <div className="chart-toolbar">
                 <div className="chart-toolbar__head">
                   <div>
@@ -914,7 +912,7 @@ function App() {
               <InflowOutflowSection embedded />
             </div>
           ) : (
-          <div className="card surface-card p-2 sm:p-3 lg:p-4">
+          <div className="card dashboard-card surface-card p-2 sm:p-3 lg:p-4">
             {metricsLoading ? (
               <LoadingState
                 variant="chart"
@@ -928,7 +926,7 @@ function App() {
               </div>
             ) : chartData.length > 0 ? (
               <>
-                <div ref={chartExportRef}>
+                <div>
                   <div style={{ height: `${chartHeight}px` }} className="dashboard-chart chart-surface compare-chart w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       {chartType === 'area' && (
@@ -1062,11 +1060,11 @@ function App() {
 
           </div>
           )}
-        </div>
+        </section>
 
-        <div className="mt-8 sm:mt-10 grid md:grid-cols-2 gap-3">
-          <div className="card p-3 sm:p-4">
-            <h3 className="section-label mb-2">Top 5 Volume</h3>
+        <div className="dashboard-insights mt-8 sm:mt-10 grid md:grid-cols-2 gap-3">
+          <div className="card dashboard-card dashboard-insight-card dashboard-insight-card--cyan p-3 sm:p-4">
+            <h3 className="dashboard-insight-card__title">Top 5 Volume</h3>
             <div className="space-y-1.5 text-sm">
               {(() => {
                 const top = markets.slice(0, 5);
@@ -1100,8 +1098,8 @@ function App() {
             </div>
           </div>
 
-          <div className="card p-3 sm:p-4">
-            <h3 className="section-label mb-2">24H Movers</h3>
+          <div className="card dashboard-card dashboard-insight-card dashboard-insight-card--violet p-3 sm:p-4">
+            <h3 className="dashboard-insight-card__title">24H Movers</h3>
             <div className="grid grid-cols-1 gap-y-0.5 text-sm">
               {[...markets]
                 .sort((a, b) => Math.abs(b.daily_price_change) - Math.abs(a.daily_price_change))

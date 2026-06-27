@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { LoadingState } from "./LoadingState";
-import { ChartDownloadButton } from "./ChartDownloadButton";
 import { TableScrollZone } from "./TableScrollZone";
-import { chartDownloadFilename } from "../lib/chartDownload";
 import {
   Bar,
   BarChart,
@@ -187,11 +185,6 @@ export function ExecutionCostSection() {
   );
 
   const periodLabel = EXECUTE_STATS_PERIODS.find((p) => p.value === period)?.label ?? period;
-  const feesTableRef = useRef<HTMLDivElement>(null);
-  const allInTableRef = useRef<HTMLDivElement>(null);
-  const feeChartRef = useRef<HTMLElement>(null);
-  const allInChartRef = useRef<HTMLElement>(null);
-  const historyChartRef = useRef<HTMLElement>(null);
 
   return (
     <section className="exec-cost-section">
@@ -289,16 +282,12 @@ export function ExecutionCostSection() {
           <VenueLegend />
 
           <div className="exec-cost-tables">
-          <div ref={feesTableRef} className="exec-cost-panel exec-cost-panel--table downloadable-block">
-            <div className="exec-cost-panel__head card-head-dl">
+          <div className="exec-cost-panel exec-cost-panel--table">
+            <div className="exec-cost-panel__head">
               <div>
-                <h3 className="exec-cost-panel__title card-head-dl__title">{market} · fees</h3>
+                <h3 className="exec-cost-panel__title">{market} · fees</h3>
                 <p className="exec-cost-panel__sub">Taker fee cost by trade size</p>
               </div>
-              <ChartDownloadButton
-                targetRef={feesTableRef}
-                filename={chartDownloadFilename(`exec-fees-${market}-${period}`)}
-              />
             </div>
             <TableScrollZone className="exec-cost-table-zone">
             <div className="table-scroll">
@@ -346,16 +335,12 @@ export function ExecutionCostSection() {
             </TableScrollZone>
           </div>
 
-          <div ref={allInTableRef} className="exec-cost-panel exec-cost-panel--table downloadable-block">
-            <div className="exec-cost-panel__head card-head-dl">
+          <div className="exec-cost-panel exec-cost-panel--table">
+            <div className="exec-cost-panel__head">
               <div>
-                <h3 className="exec-cost-panel__title card-head-dl__title">{market} · all-in</h3>
+                <h3 className="exec-cost-panel__title">{market} · all-in</h3>
                 <p className="exec-cost-panel__sub">Fee + slippage · USD and bps</p>
               </div>
-              <ChartDownloadButton
-                targetRef={allInTableRef}
-                filename={chartDownloadFilename(`exec-allin-${market}-${period}`)}
-              />
             </div>
             <TableScrollZone className="exec-cost-table-zone">
             <div className="table-scroll">
@@ -398,14 +383,8 @@ export function ExecutionCostSection() {
           </div>
 
           <div className="exec-cost-charts">
-            <article ref={feeChartRef} className="exec-cost-chart-card downloadable-block">
-              <div className="card-head-dl">
-                <h3 className="exec-cost-panel__title card-head-dl__title">{market} · fees by size</h3>
-                <ChartDownloadButton
-                  targetRef={feeChartRef}
-                  filename={chartDownloadFilename(`exec-fees-chart-${market}`)}
-                />
-              </div>
+            <article className="exec-cost-chart-card">
+              <h3 className="exec-cost-panel__title">{market} · fees by size</h3>
               <div className="exec-cost-chart compare-chart chart-surface">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={feeBarRows} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
@@ -439,14 +418,8 @@ export function ExecutionCostSection() {
               </div>
             </article>
 
-            <article ref={allInChartRef} className="exec-cost-chart-card downloadable-block">
-              <div className="card-head-dl">
-                <h3 className="exec-cost-panel__title card-head-dl__title">{market} · all-in by size</h3>
-                <ChartDownloadButton
-                  targetRef={allInChartRef}
-                  filename={chartDownloadFilename(`exec-allin-chart-${market}`)}
-                />
-              </div>
+            <article className="exec-cost-chart-card">
+              <h3 className="exec-cost-panel__title">{market} · all-in by size</h3>
               <div className="exec-cost-chart compare-chart chart-surface">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={allInBarRows} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
@@ -480,16 +453,10 @@ export function ExecutionCostSection() {
               </div>
             </article>
 
-            <article ref={historyChartRef} className="exec-cost-chart-card exec-cost-chart-card--wide downloadable-block">
-              <div className="card-head-dl">
-                <h3 className="exec-cost-panel__title card-head-dl__title">
-                  {market} · {formatTradeSize(chartSize)} · {periodLabel}
-                </h3>
-                <ChartDownloadButton
-                  targetRef={historyChartRef}
-                  filename={chartDownloadFilename(`exec-history-${market}-${chartSize}`)}
-                />
-              </div>
+            <article className="exec-cost-chart-card exec-cost-chart-card--wide">
+              <h3 className="exec-cost-panel__title">
+                {market} · {formatTradeSize(chartSize)} · {periodLabel}
+              </h3>
               <div className="exec-cost-chart compare-chart chart-surface">
                 {history.length > 1 ? (
                   <ResponsiveContainer width="100%" height="100%">

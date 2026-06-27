@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { format, fromUnixTime } from "date-fns";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { toast } from "sonner";
-import { ChartDownloadButton } from "./ChartDownloadButton";
 import { LoadingState } from "./LoadingState";
-import { chartDownloadFilename } from "../lib/chartDownload";
 import { formatUSD, getFlowMetrics, sumMetricData } from "../lib/api";
 import type { ExchangeMetric, Period } from "../types";
 import { FLOW_PERIODS } from "../types";
@@ -146,8 +144,6 @@ export function InflowOutflowSection({ embedded = false }: InflowOutflowSectionP
   const [inflowMetrics, setInflowMetrics] = useState<ExchangeMetric[]>([]);
   const [outflowMetrics, setOutflowMetrics] = useState<ExchangeMetric[]>([]);
   const [loading, setLoading] = useState(true);
-  const exportRef = useRef<HTMLDivElement>(null);
-
   const load = useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true);
@@ -241,13 +237,7 @@ export function InflowOutflowSection({ embedded = false }: InflowOutflowSectionP
         </div>
       </div>
 
-      <div ref={exportRef} className="downloadable-block relative">
-        <ChartDownloadButton
-          targetRef={exportRef}
-          filename={chartDownloadFilename(`capital-flow-${period}`)}
-          className="downloadable-block__dl downloadable-block__dl--flush"
-        />
-
+      <div>
         {loading && !inflowMetrics.length && !outflowMetrics.length ? (
           <div className="card">
             <LoadingState label="Loading capital flow…" minHeight={280} />

@@ -1,17 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { LoadingState } from "./LoadingState";
-import { ChartDownloadButton } from "./ChartDownloadButton";
 import { TableScrollZone } from "./TableScrollZone";
-import { chartDownloadFilename } from "../lib/chartDownload";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { toast } from "sonner";
 import { formatUSD, formatNumber } from "../lib/api";
 import {
@@ -24,7 +13,7 @@ import {
   type PoolComparePoint,
 } from "../lib/llpHlp";
 import {
-  CHART_CURSOR,
+  CompareDualLineChart,
   CompareLegend,
   CompareTooltip,
   LIGHTER_COLOR,
@@ -61,10 +50,19 @@ function ApyCompareTooltip({
   label?: string;
 }) {
   if (!active || !payload?.length) return null;
+
+  const seen = new Set<string>();
+  const rows = payload.filter((entry) => {
+    const key = entry.name ?? "";
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
   return (
     <div className="compare-tooltip">
       {label && <p className="compare-tooltip__label">{label}</p>}
-      {payload.map((entry, i) => {
+      {rows.map((entry, i) => {
         const rawName = entry.name;
         const name =
           rawName === "lighter" || rawName === "llpApy"
@@ -173,12 +171,6 @@ export function LlpHlpSection() {
   const [llpTrailingApy, setLlpTrailingApy] = useState<number | null>(null);
   const [hlpTrailingApy, setHlpTrailingApy] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const venuesRef = useRef<HTMLDivElement>(null);
-  const tvlChartRef = useRef<HTMLElement>(null);
-  const yieldChartRef = useRef<HTMLElement>(null);
-  const tableRef = useRef<HTMLDivElement>(null);
-  const assetsRef = useRef<HTMLElement>(null);
-
   const load = useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true);
@@ -267,12 +259,7 @@ export function LlpHlpSection() {
 
   return (
     <div className="llp-hlp-section">
-      <div ref={venuesRef} className="llp-hlp-venues downloadable-block relative">
-        <ChartDownloadButton
-          targetRef={venuesRef}
-          filename={chartDownloadFilename("llp-hlp-overview")}
-          className="downloadable-block__dl"
-        />
+      <div className="llp-hlp-venues relative">
         <VenueCard
           venue="lighter"
           name="Lighter Liquidity Provider"
@@ -293,120 +280,39 @@ export function LlpHlpSection() {
 
       {compareSeries.length > 0 && (
         <div className="llp-hlp-charts">
-          <article ref={tvlChartRef} className="llp-hlp-chart-card downloadable-block">
-            <div className="card-head-dl">
-              <h4 className="llp-hlp-chart-card__title card-head-dl__title">TVL</h4>
-              <ChartDownloadButton
-                targetRef={tvlChartRef}
-                filename={chartDownloadFilename("llp-hlp-tvl")}
-              />
-            </div>
+          <article className="llp-hlp-chart-card compare-line-card">
+            <h4 className="llp-hlp-chart-card__title compare-line-card__title">TVL</h4>
             <CompareLegend />
-            <div className="llp-hlp-chart llp-hlp-chart--tall">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={compareSeries} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="2 2" stroke="#24263a" />
-                  <XAxis
-                    dataKey="time"
-                    tick={{ fill: "#71717a", fontSize: 10 }}
-                    tickLine={false}
-                    axisLine={false}
-                    minTickGap={48}
-                  />
-                  <YAxis
-                    tick={{ fill: "#71717a", fontSize: 10 }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={52}
-                    tickFormatter={(v) => formatUSD(Number(v), true)}
-                  />
-                  <Tooltip content={<CompareTooltip format="currency" />} cursor={CHART_CURSOR} />
-                  <Line
-                    type="monotone"
-                    dataKey="llp"
-                    name="lighter"
-                    stroke={LIGHTER_COLOR}
-                    strokeWidth={1.5}
-                    dot={false}
-                    isAnimationActive={false}
-                    connectNulls
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="hlp"
-                    name="hyperliquid"
-                    stroke={HYPERLIQUID_COLOR}
-                    strokeWidth={1.5}
-                    dot={false}
-                    isAnimationActive={false}
-                    connectNulls
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <CompareDualLineChart
+              data={compareSeries.map((point) => ({ ...point }))}
+              height={240}
+              tickSize={10}
+              format="currency"
+              lighterKey="llp"
+              hyperliquidKey="hlp"
+              showChangeDots={false}
+              tooltip={<CompareTooltip format="currency" />}
+            />
           </article>
 
-          <article ref={yieldChartRef} className="llp-hlp-chart-card downloadable-block">
-            <div className="card-head-dl">
-              <h4 className="llp-hlp-chart-card__title card-head-dl__title">Yield</h4>
-              <ChartDownloadButton
-                targetRef={yieldChartRef}
-                filename={chartDownloadFilename("llp-hlp-yield")}
-              />
-            </div>
+          <article className="llp-hlp-chart-card compare-line-card">
+            <h4 className="llp-hlp-chart-card__title compare-line-card__title">Yield</h4>
             <CompareLegend />
-            <div className="llp-hlp-chart llp-hlp-chart--tall">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={compareSeries} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="2 2" stroke="#24263a" />
-                  <XAxis
-                    dataKey="time"
-                    tick={{ fill: "#71717a", fontSize: 10 }}
-                    tickLine={false}
-                    axisLine={false}
-                    minTickGap={48}
-                  />
-                  <YAxis
-                    tick={{ fill: "#71717a", fontSize: 10 }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={44}
-                    tickFormatter={(v) => `${Number(v).toFixed(1)}%`}
-                  />
-                  <Tooltip content={<ApyCompareTooltip />} cursor={CHART_CURSOR} />
-                  <Line
-                    type="monotone"
-                    dataKey="llpApy"
-                    name="lighter"
-                    stroke={LIGHTER_COLOR}
-                    strokeWidth={1.5}
-                    dot={false}
-                    isAnimationActive={false}
-                    connectNulls
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="hlpApy"
-                    name="hyperliquid"
-                    stroke={HYPERLIQUID_COLOR}
-                    strokeWidth={1.5}
-                    dot={false}
-                    isAnimationActive={false}
-                    connectNulls
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <CompareDualLineChart
+              data={compareSeries.map((point) => ({ ...point }))}
+              height={240}
+              tickSize={10}
+              format="percent"
+              lighterKey="llpApy"
+              hyperliquidKey="hlpApy"
+              showChangeDots={false}
+              tooltip={<ApyCompareTooltip />}
+            />
           </article>
         </div>
       )}
 
-      <div ref={tableRef} className="card w-full min-w-0 downloadable-block relative">
-        <ChartDownloadButton
-          targetRef={tableRef}
-          filename={chartDownloadFilename("llp-hlp-compare")}
-          className="downloadable-block__dl"
-        />
+      <div className="card w-full min-w-0">
         {loading && !compareRows.length ? (
           <LoadingState label="Loading comparison…" minHeight={180} />
         ) : (
@@ -448,12 +354,7 @@ export function LlpHlpSection() {
       </div>
 
       {llp?.assets.length ? (
-        <article ref={assetsRef} className="card w-full min-w-0 downloadable-block relative">
-          <ChartDownloadButton
-            targetRef={assetsRef}
-            filename={chartDownloadFilename("llp-assets")}
-            className="downloadable-block__dl"
-          />
+        <article className="card w-full min-w-0">
           <header className="llp-hlp-assets-head">
             <h4 className="llp-hlp-assets-head__title">LLP assets</h4>
           </header>

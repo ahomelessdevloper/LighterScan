@@ -1,7 +1,5 @@
-import { useMemo, useRef } from "react";
+import { useId, useMemo, type ReactElement } from "react";
 import { useIsMobile } from "../../hooks/useIsMobile";
-import { ChartDownloadButton } from "../ChartDownloadButton";
-import { chartDownloadFilename } from "../../lib/chartDownload";
 import {
   Area,
   AreaChart,
@@ -9,8 +7,8 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -25,11 +23,13 @@ export const HYPERLIQUID_COLOR = "#4ade80";
 
 export const BAR_CURSOR = { fill: "rgba(34, 211, 238, 0.06)", stroke: "transparent" };
 export const CHART_CURSOR = {
-  stroke: "#32354a",
+  stroke: "rgba(34, 211, 238, 0.35)",
   strokeWidth: 1,
   strokeDasharray: "4 4",
-  fill: "rgba(34, 211, 238, 0.05)",
+  fill: "rgba(34, 211, 238, 0.08)",
 };
+
+const LINE_GRID_STROKE = "rgba(36, 38, 58, 0.75)";
 
 export function CompareTooltip({
   active,
@@ -45,10 +45,20 @@ export function CompareTooltip({
   tokens?: StatValue["tokens"];
 }) {
   if (!active || !payload?.length) return null;
+
+  const seen = new Set<string>();
+  const rows = payload.filter((entry) => {
+    const rawName =
+      (entry as { payload?: { name?: string } }).payload?.name ?? entry.name ?? "";
+    if (seen.has(rawName)) return false;
+    seen.add(rawName);
+    return true;
+  });
+
   return (
     <div className="compare-tooltip">
       {label && <p className="compare-tooltip__label">{label}</p>}
-      {payload.map((entry, i) => {
+      {rows.map((entry, i) => {
         const rawName =
           (entry as { payload?: { name?: string } }).payload?.name ?? entry.name;
         const name = venueDisplayName(rawName);
@@ -128,27 +138,19 @@ export function MetricBarCard({
   metric,
   height,
   tickSize,
-  filename,
 }: {
   metric: StatValue;
   height: number;
   tickSize: number;
-  filename?: string;
 }) {
-  const captureRef = useRef<HTMLElement>(null);
   const data = [
     { name: "Lighter", value: metric.lighter ?? 0, fill: LIGHTER_COLOR },
     { name: "Hyperliquid", value: metric.hyperliquid ?? 0, fill: HYPERLIQUID_COLOR },
   ];
 
   return (
-    <article ref={captureRef} className="card p-2.5 sm:p-3 downloadable-block">
-      <ChartDownloadButton
-        targetRef={captureRef}
-        filename={filename ?? chartDownloadFilename(metric.label)}
-        className="downloadable-block__dl"
-      />
-      <h4 className="text-xs sm:text-sm font-normal text-white mb-1 pr-8">{metric.label}</h4>
+    <article className="card p-2.5 sm:p-3">
+      <h4 className="text-xs sm:text-sm font-normal text-white mb-1">{metric.label}</h4>
       <MetricValues metric={metric} />
       <div className="compare-chart chart-surface" style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -221,8 +223,7 @@ const LINE_CHART_MARGIN = { top: 14, right: 18, left: 2, bottom: 10 };
 
 type LineChartRow = {
   time: string;
-  lighter: number | null;
-  hyperliquid: number | null;
+  [key: string]: string | number | null | undefined;
 };
 
 type LineDotProps = {
@@ -234,8 +235,8 @@ type LineDotProps = {
 
 function makeChangeDot(
   color: string,
-  dataKey: "lighter" | "hyperliquid",
-  data: LineChartRow[]
+  dataKey: string,
+  data: ReadonlyArray<LineChartRow>
 ) {
   return (props: LineDotProps) => {
     const { cx, cy, index, value } = props;
@@ -243,20 +244,183 @@ function makeChangeDot(
       return null;
     }
 
-    const prev = index > 0 ? data[index - 1]?.[dataKey] : null;
+    const prev = index > 0 ? data[index - 1]?.[dataKey as keyof LineChartRow] : null;
     if (prev != null && prev === value) return null;
 
     return (
       <circle
         cx={cx}
         cy={cy}
-        r={2.5}
+        r={3}
         fill={color}
         stroke="#0a0b12"
-        strokeWidth={1}
+        strokeWidth={1.5}
       />
     );
   };
+}
+
+type CompareDualLineChartProps = {
+  data: ReadonlyArray<LineChartRow>;
+  height: number;
+  tickSize: number;
+  format?: StatValue["format"];
+  series?: TimeSeriesPoint[];
+  lighterKey?: string;
+  hyperliquidKey?: string;
+  lighterName?: string;
+  hyperliquidName?: string;
+  showChangeDots?: boolean;
+  tooltip?: ReactElement;
+};
+
+export function CompareDualLineChart({
+  data,
+  height,
+  tickSize,
+  format = "ratio",
+  series,
+  lighterKey = "lighter",
+  hyperliquidKey = "hyperliquid",
+  lighterName = "lighter",
+  hyperliquidName = "hyperliquid",
+  showChangeDots = true,
+  tooltip,
+}: CompareDualLineChartProps) {
+  const chartId = useId().replace(/:/g, "");
+  const lighterFillId = `compare-lighter-fill-${chartId}`;
+  const hyperFillId = `compare-hyper-fill-${chartId}`;
+  const lighterGlowId = `compare-lighter-glow-${chartId}`;
+  const hyperGlowId = `compare-hyper-glow-${chartId}`;
+
+  const yDomain = useMemo(
+    () => (series ? lineChartYDomain(series, format) : undefined),
+    [series, format]
+  );
+  const lighterDot = useMemo(
+    () => (showChangeDots ? makeChangeDot(LIGHTER_COLOR, lighterKey, data) : false),
+    [showChangeDots, lighterKey, data]
+  );
+  const hyperliquidDot = useMemo(
+    () => (showChangeDots ? makeChangeDot(HYPERLIQUID_COLOR, hyperliquidKey, data) : false),
+    [showChangeDots, hyperliquidKey, data]
+  );
+
+  return (
+    <div className="compare-chart compare-chart--line compare-line-chart chart-surface" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} margin={LINE_CHART_MARGIN}>
+          <defs>
+            <linearGradient id={lighterFillId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={LIGHTER_COLOR} stopOpacity={0.32} />
+              <stop offset="55%" stopColor={LIGHTER_COLOR} stopOpacity={0.1} />
+              <stop offset="100%" stopColor={LIGHTER_COLOR} stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id={hyperFillId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={HYPERLIQUID_COLOR} stopOpacity={0.28} />
+              <stop offset="55%" stopColor={HYPERLIQUID_COLOR} stopOpacity={0.08} />
+              <stop offset="100%" stopColor={HYPERLIQUID_COLOR} stopOpacity={0} />
+            </linearGradient>
+            <filter id={lighterGlowId} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2.2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <filter id={hyperGlowId} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2.2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <CartesianGrid strokeDasharray="3 6" stroke={LINE_GRID_STROKE} vertical={false} />
+          <XAxis
+            dataKey="time"
+            tick={{ fill: "#71717a", fontSize: tickSize }}
+            tickLine={false}
+            axisLine={false}
+            minTickGap={32}
+            padding={{ left: 16, right: 16 }}
+            dy={4}
+          />
+          <YAxis
+            tick={{ fill: "#71717a", fontSize: tickSize }}
+            tickLine={false}
+            axisLine={false}
+            width={isMobileTickWidth(tickSize) + 6}
+            domain={yDomain}
+            tickFormatter={(v) => lineTickFormatter(Number(v), format)}
+            tickCount={format === "percent" ? 5 : 6}
+          />
+          <Tooltip
+            content={tooltip ?? <CompareTooltip format={format} />}
+            cursor={CHART_CURSOR}
+          />
+          <Area
+            type="monotone"
+            dataKey={lighterKey}
+            name={lighterName}
+            fill={`url(#${lighterFillId})`}
+            stroke="none"
+            dot={false}
+            activeDot={false}
+            isAnimationActive={false}
+            connectNulls
+            tooltipType="none"
+          />
+          <Area
+            type="monotone"
+            dataKey={hyperliquidKey}
+            name={hyperliquidName}
+            fill={`url(#${hyperFillId})`}
+            stroke="none"
+            dot={false}
+            activeDot={false}
+            isAnimationActive={false}
+            connectNulls
+            tooltipType="none"
+          />
+          <Line
+            type="monotone"
+            dataKey={lighterKey}
+            name={lighterName}
+            stroke={LIGHTER_COLOR}
+            strokeWidth={2.5}
+            dot={lighterDot}
+            activeDot={{
+              r: 5,
+              stroke: LIGHTER_COLOR,
+              strokeWidth: 2,
+              fill: "#0a0b12",
+            }}
+            filter={`url(#${lighterGlowId})`}
+            isAnimationActive={false}
+            connectNulls
+          />
+          <Line
+            type="monotone"
+            dataKey={hyperliquidKey}
+            name={hyperliquidName}
+            stroke={HYPERLIQUID_COLOR}
+            strokeWidth={2.5}
+            dot={hyperliquidDot}
+            activeDot={{
+              r: 5,
+              stroke: HYPERLIQUID_COLOR,
+              strokeWidth: 2,
+              fill: "#0a0b12",
+            }}
+            filter={`url(#${hyperGlowId})`}
+            isAnimationActive={false}
+            connectNulls
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 export function RatioLineCard({
@@ -264,7 +428,6 @@ export function RatioLineCard({
   series,
   height,
   tickSize,
-  filename,
   format = "ratio",
   latest,
 }: {
@@ -272,11 +435,9 @@ export function RatioLineCard({
   series: TimeSeriesPoint[];
   height: number;
   tickSize: number;
-  filename?: string;
   format?: StatValue["format"];
   latest?: StatValue;
 }) {
-  const captureRef = useRef<HTMLElement>(null);
   const chartData = useMemo(
     () =>
       (series ?? []).map((point) => ({
@@ -286,70 +447,17 @@ export function RatioLineCard({
       })),
     [series]
   );
-  const yDomain = useMemo(() => lineChartYDomain(series, format), [series, format]);
-  const lighterDot = useMemo(() => makeChangeDot(LIGHTER_COLOR, "lighter", chartData), [chartData]);
-  const hyperliquidDot = useMemo(
-    () => makeChangeDot(HYPERLIQUID_COLOR, "hyperliquid", chartData),
-    [chartData]
-  );
-
   return (
-    <article ref={captureRef} className="card p-2.5 sm:p-3 downloadable-block">
-      <ChartDownloadButton
-        targetRef={captureRef}
-        filename={filename ?? chartDownloadFilename(label)}
-        className="downloadable-block__dl"
-      />
-      <h4 className="text-xs sm:text-sm font-normal text-white mb-1 pr-8">{label}</h4>
+    <article className="card compare-line-card p-2.5 sm:p-3">
+      <h4 className="compare-line-card__title">{label}</h4>
       {latest ? <MetricValues metric={latest} /> : null}
-      <div className="compare-chart compare-chart--line chart-surface" style={{ height }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={LINE_CHART_MARGIN}>
-            <CartesianGrid strokeDasharray="2 2" stroke="#24263a" vertical={false} />
-            <XAxis
-              dataKey="time"
-              tick={{ fill: "#71717a", fontSize: tickSize }}
-              tickLine={false}
-              axisLine={false}
-              minTickGap={32}
-              padding={{ left: 16, right: 16 }}
-              dy={4}
-            />
-            <YAxis
-              tick={{ fill: "#71717a", fontSize: tickSize }}
-              tickLine={false}
-              axisLine={false}
-              width={isMobileTickWidth(tickSize) + 6}
-              domain={yDomain}
-              tickFormatter={(v) => lineTickFormatter(Number(v), format)}
-              tickCount={format === "percent" ? 5 : 6}
-            />
-            <Tooltip content={<CompareTooltip format={format} />} cursor={CHART_CURSOR} />
-            <Line
-              type="monotone"
-              dataKey="lighter"
-              name="lighter"
-              stroke={LIGHTER_COLOR}
-              strokeWidth={2}
-              dot={lighterDot}
-              activeDot={{ r: 4, stroke: "#0a0b12", strokeWidth: 1, fill: LIGHTER_COLOR }}
-              isAnimationActive={false}
-              connectNulls
-            />
-            <Line
-              type="monotone"
-              dataKey="hyperliquid"
-              name="hyperliquid"
-              stroke={HYPERLIQUID_COLOR}
-              strokeWidth={2}
-              dot={hyperliquidDot}
-              activeDot={{ r: 4, stroke: "#0a0b12", strokeWidth: 1, fill: HYPERLIQUID_COLOR }}
-              isAnimationActive={false}
-              connectNulls
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <CompareDualLineChart
+        data={chartData}
+        series={series}
+        height={height}
+        tickSize={tickSize}
+        format={format}
+      />
     </article>
   );
 }

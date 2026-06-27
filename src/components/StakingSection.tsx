@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { LoadingState } from "./LoadingState";
-import { ChartDownloadButton } from "./ChartDownloadButton";
 import { TableScrollZone } from "./TableScrollZone";
-import { chartDownloadFilename } from "../lib/chartDownload";
 import {
   Cell,
   Pie,
@@ -112,8 +110,6 @@ function LitSupplyDonut({
 }
 
 function LitSupplyChart({ supply }: { supply: LitSupplyBreakdown }) {
-  const captureRef = useRef<HTMLElement>(null);
-
   const tradingSplit = useMemo<SupplyDonutSlice[]>(
     () => [
       {
@@ -135,12 +131,7 @@ function LitSupplyChart({ supply }: { supply: LitSupplyBreakdown }) {
   );
 
   return (
-    <article ref={captureRef} className="staking-supply-card downloadable-block">
-      <ChartDownloadButton
-        targetRef={captureRef}
-        filename={chartDownloadFilename("lit-supply")}
-        className="downloadable-block__dl"
-      />
+    <article className="staking-supply-card">
       <header className="staking-supply-card__head">
         <div>
           <h4 className="staking-supply-card__title">LIT supply</h4>
@@ -226,9 +217,6 @@ export function StakingSection() {
   const [pool, setPool] = useState<LitStakingSnapshot | null>(null);
   const [supply, setSupply] = useState<LitSupplyBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
-  const poolRef = useRef<HTMLElement>(null);
-  const assetsRef = useRef<HTMLElement>(null);
-
   const load = useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true);
@@ -253,12 +241,7 @@ export function StakingSection() {
 
   return (
     <div className="staking-section">
-      <article ref={poolRef} className="staking-pool-card downloadable-block">
-        <ChartDownloadButton
-          targetRef={poolRef}
-          filename={chartDownloadFilename("lit-staking")}
-          className="downloadable-block__dl"
-        />
+      <article className="staking-pool-card">
         <header className="staking-pool-card__head">
           <span className="staking-pool-card__badge" style={{ background: LIGHTER_COLOR }}>
             LIT
@@ -314,12 +297,7 @@ export function StakingSection() {
       {supply && <LitSupplyChart supply={supply} />}
 
       {pool?.assets.length ? (
-        <article ref={assetsRef} className="card w-full min-w-0 downloadable-block relative">
-          <ChartDownloadButton
-            targetRef={assetsRef}
-            filename={chartDownloadFilename("lit-staking-assets")}
-            className="downloadable-block__dl"
-          />
+        <article className="card w-full min-w-0">
           <header className="staking-assets-head">
             <h4 className="staking-assets-head__title">Assets</h4>
           </header>

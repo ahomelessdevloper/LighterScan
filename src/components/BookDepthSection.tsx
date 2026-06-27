@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity } from "lucide-react";
-import { ChartDownloadButton } from "./ChartDownloadButton";
 import { ComparePageTitle } from "./compare/shared";
-import { chartDownloadFilename } from "../lib/chartDownload";
 import {
   Area,
   Bar,
@@ -199,22 +197,18 @@ function MirroredDepthChart({
   theme,
   data,
   xMode,
-  filename,
 }: {
   theme: VenueTheme;
   data: VenueDepthPoint[];
   xMode: DepthXAxisMode;
-  filename: string;
 }) {
-  const captureRef = useRef<HTMLElement>(null);
   const maxY = useMemo(
     () => Math.max(...data.flatMap((p) => [p.bid ?? 0, p.ask ?? 0]), 1),
     [data]
   );
 
   return (
-    <article ref={captureRef} className={`depth-venue-card depth-venue-card--${theme.id} downloadable-block`}>
-      <ChartDownloadButton targetRef={captureRef} filename={filename} className="downloadable-block__dl" />
+    <article className={`depth-venue-card depth-venue-card--${theme.id}`}>
       <div className="depth-venue-card__ribbon" aria-hidden="true" />
       <div className="depth-venue-card__glow" aria-hidden="true" />
       <div className="depth-venue-card__head">
@@ -299,14 +293,11 @@ function CompareBars({
   lighter,
   hyperliquid,
   range,
-  market,
 }: {
   lighter: { bid: number; ask: number };
   hyperliquid: { bid: number; ask: number };
   range: DepthRange;
-  market: string;
 }) {
-  const captureRef = useRef<HTMLElement>(null);
   const rows = [
     { label: "Bid Depth", lighter: lighter.bid, hyperliquid: hyperliquid.bid },
     { label: "Ask Depth", lighter: lighter.ask, hyperliquid: hyperliquid.ask },
@@ -318,12 +309,7 @@ function CompareBars({
   ];
   const maxVal = Math.max(...rows.flatMap((r) => [r.lighter, r.hyperliquid]), 1);
   return (
-    <article ref={captureRef} className="depth-compare-card downloadable-block">
-      <ChartDownloadButton
-        targetRef={captureRef}
-        filename={chartDownloadFilename(`book-depth-compare-${market}`)}
-        className="downloadable-block__dl"
-      />
+    <article className="depth-compare-card">
       <div className="depth-compare-card__head">
         <h3 className="depth-compare-card__title">Depth · ±{range}%</h3>
       </div>
@@ -398,7 +384,7 @@ function CompareBars({
 }
 
 export function BookDepthSection() {
-  const heroRef = useRef<HTMLDivElement>(null);
+
   const [markets, setMarkets] = useState<CompareMarket[]>([]);
   const [market, setMarket] = useState<CompareMarket | null>(null);
   const [lighterBook, setLighterBook] = useState<BookDepthSnapshot | null>(null);
@@ -482,12 +468,7 @@ export function BookDepthSection() {
     <section className="book-depth-section">
       <ComparePageTitle title="Book Depth" />
 
-      <div ref={heroRef} className="depth-panel depth-panel--hero downloadable-block relative">
-        <ChartDownloadButton
-          targetRef={heroRef}
-          filename={chartDownloadFilename(`book-depth-${market?.symbol ?? "market"}`)}
-          className="downloadable-block__dl"
-        />
+      <div className="depth-panel depth-panel--hero relative">
         <div className="depth-panel__status">
           <span className={`depth-live-pill ${connected ? "depth-live-pill--on" : ""}`}>
             <Activity className={`depth-live-icon ${connected ? "depth-live-icon--on" : ""}`} />
@@ -623,18 +604,15 @@ export function BookDepthSection() {
             theme={THEMES.hyperliquid}
             data={hlProfile}
             xMode={xMode}
-            filename={chartDownloadFilename(`book-depth-hl-${market?.symbol ?? "market"}`)}
           />
           <MirroredDepthChart
             theme={THEMES.lighter}
             data={lighterProfile}
             xMode={xMode}
-            filename={chartDownloadFilename(`book-depth-l-${market?.symbol ?? "market"}`)}
           />
           {hlStats && lighterStats && (
             <CompareBars
               range={range}
-              market={market?.symbol ?? "market"}
               lighter={{ bid: lighterStats.bidUsd, ask: lighterStats.askUsd }}
               hyperliquid={{ bid: hlStats.bidUsd, ask: hlStats.askUsd }}
             />
