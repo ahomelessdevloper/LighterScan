@@ -48,7 +48,7 @@ export default function CompareHub({ onNavigate }: CompareHubProps) {
   const Page = PAGES[tab];
 
   return (
-    <div className="min-h-screen bg-[#0a0b12] text-white">
+    <div className="app-page">
       <SiteNav active="compare" onNavigate={onNavigate} />
       <div className="compare-shell page-shell">
         <CompareSidebar active={tab} />

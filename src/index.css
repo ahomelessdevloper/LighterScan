@@ -13,11 +13,17 @@
   --surface-ring: rgba(244, 244, 245, 0.08);
   --surface-muted: #71717a;
   --bg: #0a0b12;
-  --bg-elev: #11131c;
-  --bg-card: #15171f;
-  --bg-card-hover: #1a1d28;
-  --border: #24263a;
-  --border-light: #32354a;
+  --bg-base: #090b11;
+  --bg-page-gradient:
+    radial-gradient(ellipse 110% 75% at 0% -8%, rgba(34, 211, 238, 0.13), transparent 54%),
+    radial-gradient(ellipse 90% 65% at 100% 2%, rgba(99, 102, 241, 0.09), transparent 50%),
+    radial-gradient(ellipse 80% 55% at 50% 108%, rgba(34, 211, 238, 0.06), transparent 46%),
+    linear-gradient(165deg, #0c1018 0%, #090b11 42%, #070910 100%);
+  --bg-elev: #181c28;
+  --bg-card: #1c2130;
+  --bg-card-hover: #242a3c;
+  --border: #2a3044;
+  --border-light: #3a4158;
   --text: #a1a1aa;
   --text-primary: #f4f4f5;
   --text-muted: #71717a;
@@ -67,20 +73,29 @@ body {
   line-height: 1.5;
   letter-spacing: -0.02em;
   font-optical-sizing: auto;
-  background: var(--bg);
+  background-color: var(--bg-base);
+  background-image: var(--bg-page-gradient);
+  background-size: 100% 100%;
+  background-attachment: fixed;
   color: var(--text-primary);
   margin: 0;
   min-height: 100svh;
   overflow-x: clip;
   text-rendering: optimizeLegibility;
-  background-image:
-    radial-gradient(circle at 20% 0%, rgba(34, 211, 238, 0.04) 0%, transparent 45%),
-    radial-gradient(circle at 80% 100%, rgba(167, 139, 250, 0.03) 0%, transparent 40%);
-  background-attachment: fixed;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.app-page {
+  min-height: 100svh;
+  background-color: var(--bg-base);
+  background-image: var(--bg-page-gradient);
+  background-size: 100% 100%;
+  background-attachment: fixed;
+  overflow-x: clip;
+  color: var(--text-primary);
 }
 
 button,
@@ -145,7 +160,7 @@ textarea {
 /* ── Dashboard (main page) ── */
 .dashboard-page {
   position: relative;
-  background: #080910;
+  background: transparent;
   overflow-x: clip;
 }
 
@@ -165,8 +180,8 @@ textarea {
 .dashboard-ambient__orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(72px);
-  opacity: 0.55;
+  filter: blur(80px);
+  opacity: 0.48;
 }
 
 .dashboard-ambient__orb--cyan {
@@ -475,8 +490,8 @@ textarea {
 }
 
 .dashboard-page .chart-summary-item {
-  background: rgba(8, 9, 16, 0.9);
-  border-color: rgba(50, 53, 74, 0.75);
+  background: rgba(32, 38, 56, 0.72);
+  border-color: rgba(58, 65, 88, 0.75);
 }
 
 .card,
@@ -1407,9 +1422,9 @@ textarea {
   position: relative;
   z-index: 1;
   border-radius: 10px;
-  border: 1px solid rgba(36, 38, 58, 0.8);
+  border: 1px solid rgba(58, 65, 88, 0.75);
   background:
-    linear-gradient(180deg, rgba(13, 15, 21, 0.92) 0%, rgba(8, 9, 16, 0.55) 100%);
+    linear-gradient(180deg, rgba(32, 38, 56, 0.78) 0%, rgba(26, 31, 48, 0.48) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
     0 10px 24px rgba(0, 0, 0, 0.2);
@@ -1454,8 +1469,8 @@ textarea {
 }
 
 .compare-tooltip {
-  background: rgba(12, 14, 22, 0.96);
-  border: 1px solid rgba(50, 53, 74, 0.95);
+  background: rgba(30, 36, 54, 0.94);
+  border: 1px solid rgba(58, 65, 88, 0.95);
   border-radius: 10px;
   padding: 9px 11px;
   font-size: 11px;
@@ -1510,11 +1525,13 @@ textarea {
   width: 100%;
   min-width: 0;
   overflow: hidden;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(32, 38, 56, 0.55) 0%, rgba(26, 31, 48, 0.28) 100%);
 }
 
 .chart-surface .recharts-cartesian-grid-horizontal line,
 .dashboard-chart .recharts-cartesian-grid-horizontal line {
-  stroke: rgba(36, 38, 58, 0.85);
+  stroke: rgba(58, 65, 88, 0.7);
 }
 
 .chart-surface .recharts-cartesian-grid-vertical line,
@@ -1523,8 +1540,8 @@ textarea {
 }
 
 .chart-tooltip {
-  background: #12141c;
-  border: 1px solid rgba(50, 53, 74, 0.95);
+  background: #1e2436;
+  border: 1px solid rgba(58, 65, 88, 0.95);
   border-radius: 10px;
   padding: 0.55rem 0.7rem;
   font-size: 0.72rem;
@@ -1644,7 +1661,7 @@ textarea {
   padding: 0.2rem;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: #0d0f15;
+  background: #181c28;
 }
 
 .chart-type-tab {
@@ -1683,8 +1700,8 @@ textarea {
 .chart-summary-item {
   padding: 0.45rem 0.55rem;
   border-radius: 8px;
-  background: rgba(13, 15, 21, 0.85);
-  border: 1px solid rgba(36, 38, 58, 0.85);
+  background: rgba(32, 38, 56, 0.68);
+  border: 1px solid rgba(58, 65, 88, 0.8);
   min-width: 0;
 }
 
@@ -3742,27 +3759,28 @@ textarea {
   transform: translateX(1px);
 }
 
-/* Force dark mode only — this is a dark trading dashboard.
-   Some users had light/yellow background because of prefers-color-scheme: light.
-*/
 html {
   color-scheme: dark;
 }
 
 body {
-  background: #0a0b12 !important; /* hard force dark background */
+  background-color: var(--bg-base) !important;
+  background-image: var(--bg-page-gradient) !important;
+  background-size: 100% 100% !important;
+  background-attachment: fixed;
 }
 
 @media (max-width: 479px) {
+  :root {
+    --bg-page-gradient:
+      radial-gradient(ellipse 115% 80% at 0% -5%, rgba(34, 211, 238, 0.16), transparent 52%),
+      radial-gradient(ellipse 95% 70% at 100% 0%, rgba(99, 102, 241, 0.11), transparent 48%),
+      radial-gradient(ellipse 85% 60% at 50% 110%, rgba(34, 211, 238, 0.08), transparent 44%),
+      linear-gradient(165deg, #0c1018 0%, #090b11 42%, #070910 100%);
+  }
+
   body {
     font-size: 12px;
-    background-image: 
-      radial-gradient(circle at 15% 15%, rgba(34, 211, 238, 0.09) 0%, transparent 45%),
-      radial-gradient(circle at 82% 75%, rgba(167, 139, 250, 0.07) 0%, transparent 40%),
-      radial-gradient(circle at 50% 90%, rgba(52, 211, 153, 0.06) 0%, transparent 50%),
-      linear-gradient(rgba(34, 211, 238, 0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(34, 211, 238, 0.04) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px, 28px 28px;
   }
 
   
@@ -3892,15 +3910,8 @@ body {
 }
 
 @media (max-width: 360px) {
-  body { 
-    font-size: 11.5px; 
-    background-image: 
-      radial-gradient(circle at 15% 15%, rgba(34, 211, 238, 0.11) 0%, transparent 40%),
-      radial-gradient(circle at 82% 75%, rgba(167, 139, 250, 0.08) 0%, transparent 35%),
-      radial-gradient(circle at 50% 90%, rgba(52, 211, 153, 0.07) 0%, transparent 45%),
-      linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 100% 100%, 22px 22px, 22px 22px;
+  body {
+    font-size: 11.5px;
   }
   .market-table th { font-size: 9px !important; padding: 5px 7px !important; font-weight: 400 !important; }
   .market-table td { font-size: 10px !important; padding: 6px 7px !important; }

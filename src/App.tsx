@@ -518,7 +518,7 @@ function App() {
   }
 
   return (
-    <div className="dashboard-page min-h-screen text-white">
+    <div className="app-page dashboard-page">
 
       <SiteNav active="dashboard" onNavigate={navigate} />
 
@@ -527,25 +527,6 @@ function App() {
           <span className="dashboard-ambient__orb dashboard-ambient__orb--cyan" />
           <span className="dashboard-ambient__orb dashboard-ambient__orb--violet" />
         </div>
-
-        <header className="dashboard-hero">
-          <div className="dashboard-hero__copy">
-            <p className="dashboard-hero__eyebrow">Lighter exchange</p>
-            <h1 className="dashboard-hero__title">Market overview</h1>
-            <p className="dashboard-hero__sub">Live stats, markets, and historical metrics in one place.</p>
-          </div>
-          <div className="dashboard-hero__meta">
-            <span className={`dashboard-live-pill ${statsLoading ? '' : 'dashboard-live-pill--on'}`}>
-              <span className="dashboard-live-pill__dot" aria-hidden="true" />
-              {statsLoading ? 'Syncing' : 'Live'}
-            </span>
-            {markets[0] && (
-              <span className="dashboard-hero__chip">
-                Leading <strong>{markets[0].symbol}</strong>
-              </span>
-            )}
-          </div>
-        </header>
 
         <div className="dashboard-stats-grid">
           <div className="stat-card stat-card--cyan dashboard-stat-card">

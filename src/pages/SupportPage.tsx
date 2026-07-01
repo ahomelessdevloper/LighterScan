@@ -63,7 +63,7 @@ export default function SupportPage({ onNavigate }: SupportPageProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0a0b12] text-white">
+    <div className="app-page">
       <SiteNav active="support" onNavigate={onNavigate} />
 
       <main className="support-page page-shell max-w-[720px]">
